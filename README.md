@@ -1,21 +1,108 @@
-# Vocab — AI Powered Vocabulary Learning Platform
+# Vocab Korean
 
 <p align="center">
-  Learn smarter with AI-powered vocabulary practice, spaced repetition, quizzes, and real-time progress tracking.
+Modern Korean vocabulary learning platform built with React, TypeScript, and AI-assisted learning workflows.
 </p>
+
+<p align="center">
+  <a href="https://github.com/hariom-jbnu/Vocab-korean">Repository</a>
+  •
+  <a href="https://vocab.free.nf/?i=1">Live Demo</a>
+</p>
+
+---
+
+## Overview
+
+Vocab Korean is a web-based vocabulary learning application designed to improve Korean language retention through interactive learning techniques, spaced repetition workflows, and AI-assisted study methods.
+
+The platform focuses on:
+- Vocabulary memorization
+- Active recall learning
+- Quiz-based retention
+- Responsive study experience
+- Real-time progress interaction
+
+Built for:
+- Korean language learners
+- Students preparing for TOPIK
+- Daily vocabulary practice
+- Self-paced learning workflows
+
+---
+
+## Features
+
+- Interactive vocabulary learning
+- Flashcard-based study system
+- Quiz and recall workflow
+- Responsive mobile-friendly UI
+- Text-to-Speech support
+- Theme and settings customization
+- Fast client-side performance
+- Local storage persistence
+
+---
+
+## Preview
+
+| Home Page | Settings Page |
+|---|---|
+| ![](data/asset/home.png) | ![](data/asset/setting.png) |
+
+---
+
+## Tech Stack
+
+### Frontend
+- **React 19** — component-based UI framework
+- **TypeScript** — type-safe JavaScript development
+- **Vite** — modern frontend build tool
+- **Tailwind CSS** — utility-first styling framework
+- **React Router** — client-side routing
+
+### Browser APIs
+- **Web Speech API** — text-to-speech functionality
+- **Local Storage API** — persistent user settings
+
+---
+
+## Project Structure
+
+```bash
+Vocab-korean/
+│
+├── public/             # Static assets
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/          # Application pages
+│   ├── routes/         # Routing configuration
+│   ├── hooks/          # Custom React hooks
+│   ├── utils/          # Utility functions
+│   ├── styles/         # Global styles
+│   └── assets/         # Images and local assets
+│
+├── data/asset/         # README screenshots
+├── package.json
+└── vite.config.ts
+````
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js 16+ and npm
+
+* Node.js 16+
+* npm or pnpm
 
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/hariom-jbnu/Vocab-korean.git
+
+# Enter project directory
 cd Vocab-korean
 
 # Install dependencies
@@ -23,155 +110,96 @@ npm install
 
 # Start development server
 npm run dev
+```
 
-# Build for production
+Application runs at:
+
+```bash
+http://localhost:3000
+```
+
+---
+
+## Production Build
+
+```bash
+# Create production build
 npm run build
 
 # Preview production build
 npm run preview
 ```
 
-The app will be available at `http://localhost:3000`
+---
+
+## Development Goals
+
+* Improve Korean vocabulary retention
+* Build distraction-free learning workflows
+* Provide scalable vocabulary study tools
+* Integrate AI-assisted language learning
+* Support modern web performance standards
 
 ---
 
-## Preview
+## Planned Features
 
-<p align="center">
-  <img src="data/asset/home.png" width="800" alt="Vocab App Screenshot"/>
-</p>
-
-<p align="center">
-  <img src="data/asset/setting.png" width="800" alt="Vocabulary Learning Dashboard"/>
-</p>
-
----
-
-## About
-
-Vocab is a modern vocabulary learning platform designed to help users improve language skills through interactive learning methods and AI-assisted practice.
-
-The platform focuses on:
-- Smart vocabulary learning
-- Spaced repetition
-- Quiz-based retention
-- Fast and distraction-free UI
-- Real-time progress tracking
-
-Built for students, language learners, exam preparation, and daily vocabulary improvement.
-
----
-
-## Features
-
-- AI-assisted vocabulary learning
-- Flashcards and interactive quizzes
-- Spaced repetition system (SRS)
-- Daily learning workflow
-- Progress tracking and analytics
-- Responsive design for mobile and desktop
-- Lightweight and fast web experience
-
----
-
-## Tech Stack
-
-### Frontend
-- **React 19** - UI framework
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Styling
-- **React Router** - Navigation
-- **Vite** - Build tool
-
-### Features
-- Text-to-Speech (Web Speech API)
-- Local storage for settings
-- Responsive design
-- Multiple theme support
-
----
-
-## Screenshots
-
-| Home Page | Learning Interface |
-|---|---|
-| ![Home](data/asset/home.png) | ![Setting](data/asset/setting.png) |
-
----
-
-## Project Goals
-
-- Make vocabulary learning simple and accessible
-- Improve long-term retention using active recall
-- Build an engaging AI-assisted learning experience
-- Support scalable language-learning workflows
-
----
-
-## Inspiration
-
-This project is inspired by modern vocabulary learning systems and spaced repetition platforms used in language education and AI-powered learning applications. Similar approaches are widely used in vocabulary platforms and flashcard-based learning systems.
-
----
-
-## Future Improvements
-
-- Multi-language support
-- AI-generated example sentences
-- Voice pronunciation
-- Personalized learning recommendations
-- Gamification and streak systems
-- Offline support
+* AI-generated example sentences
+* Personalized learning recommendations
+* Multi-language vocabulary support
+* User authentication
+* Cloud synchronization
+* Offline learning support
+* Learning analytics dashboard
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started.
-
-### Development
+Contributions are welcome.
 
 ```bash
-# Create a new feature branch
-git checkout -b feature/your-feature-name
+# Create feature branch
+git checkout -b feature/your-feature
 
-# Make your changes and commit
-git commit -m "feat: add your feature"
+# Commit changes
+git commit -m "feat: add new feature"
 
-# Push to your fork and create a pull request
-git push origin feature/your-feature-name
+# Push branch
+git push origin feature/your-feature
 ```
 
----
-
-## Security
-
-Please see [SECURITY_REPORT.md](SECURITY_REPORT.md) for important security guidelines and best practices before deploying this application.
-
-**Important:** Never commit `.env` files or API keys to version control. Use `.env.local` for local development (see `.env.example` for template).
+Open a Pull Request describing your changes.
 
 ---
 
-## Code of Conduct
+## Security Notes
 
-This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+* Never commit `.env` files
+* Store secrets in `.env.local`
+* Review dependencies regularly
+* Validate external API inputs
 
 ---
 
 ## Support
 
-- **Questions?** Open an [issue](https://github.com/hariom-jbnu/Vocab-korean/issues)
-- **Found a bug?** Please [report it](https://github.com/hariom-jbnu/Vocab-korean/issues/new)
-- **Have feedback?** Use the [contact form](https://docs.google.com/forms/d/e/1FAIpQLSe9_2GxB2CaI3zhFe0ugyq1vhI9Le_UFV7jziLaOdrA25KSNg/viewform)
+* Report bugs via GitHub Issues
+* Submit feature requests
+* Share improvements through Pull Requests
+
+Repository:
+
+* [https://github.com/hariom-jbnu/Vocab-korean](https://github.com/hariom-jbnu/Vocab-korean)
 
 ---
 
 ## License
 
-This project is licensed under the terms specified in the LICENSE file.
+This project is licensed under the LICENSE file.
 
 ---
 
-## Acknowledgments
+## Author
+Built by [Hariom Dhakad](https://github.com/py-hariom) & [Hariom Dhakad](https://github.com/hariom-jbnu)
 
-Built with ❤️ by [Hariom](https://github.com/py-hariom)
