@@ -1,0 +1,7 @@
+{
+  "name": "Korean Flashcards Pro",
+  "description": "A production-ready flashcard application for learning Korean, Hindi, and English with natural TTS support, customizable themes, and integrated feedback.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
