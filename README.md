@@ -9,11 +9,11 @@
 ## Preview
 
 <p align="center">
-  <img src="https://your-image-link-1.png" width="800" alt="Vocab App Screenshot"/>
+  <img src="home.png" width="800" alt="Vocab App Screenshot"/>
 </p>
 
 <p align="center">
-  <img src="https://your-image-link-2.png" width="800" alt="Vocabulary Learning Dashboard"/>
+  <img src="setting.png" width="800" alt="Vocabulary Learning Dashboard"/>
 </p>
 
 ---
@@ -69,7 +69,7 @@ Built for students, language learners, exam preparation, and daily vocabulary im
 
 | Home Page | Learning Interface |
 |---|---|
-| ![Home](home.png) | ![Learning](setting.png) |
+| ![Home](home.png) | ![Setting](setting.png) |
 
 ---
 
@@ -82,15 +82,9 @@ Built for students, language learners, exam preparation, and daily vocabulary im
 
 ---
 
-## Live Demo
-
-🌐 :contentReference[oaicite:0]{index=0}
-
----
-
 ## Inspiration
 
-This project is inspired by modern vocabulary learning systems and spaced repetition platforms used in language education and AI-powered learning applications. Similar approaches are widely used in vocabulary platforms and flashcard-based learning systems. :contentReference[oaicite:1]{index=1}
+This project is inspired by modern vocabulary learning systems and spaced repetition platforms used in language education and AI-powered learning applications. Similar approaches are widely used in vocabulary platforms and flashcard-based learning systems.
 
 ---
 
