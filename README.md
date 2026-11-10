@@ -1,7 +1,7 @@
 # Vocab Korean
 
 <p align="center">
-Modern Korean vocabulary learning platform built with React, TypeScript, and AI-assisted learning workflows.
+Learn Korean vocabulary with active recall and spaced repetition, with Hindi and English meanings.
 </p>
 
 <p align="center">
@@ -14,33 +14,52 @@ Modern Korean vocabulary learning platform built with React, TypeScript, and AI-
 
 ## Overview
 
-Vocab Korean is a web-based vocabulary learning application designed to improve Korean language retention through interactive learning techniques, spaced repetition workflows, and AI-assisted study methods.
+Vocab Korean helps you remember Korean words, not just read them. Each word is shown in Korean first, you try to recall the meaning, then rate how well you knew it. A spaced repetition scheduler (FSRS) brings every word back just before you would forget it.
 
 The platform focuses on:
-- Vocabulary memorization
-- Active recall learning
-- Quiz-based retention
-- Responsive study experience
-- Real-time progress interaction
+- Active recall instead of re-reading
+- Spaced repetition with the FSRS algorithm
+- Hindi and English meanings for every word
+- Progress saved in your browser, no account needed
+- Fast, distraction-free study on desktop and mobile
 
 Built for:
-- Korean language learners
+- Korean language learners, especially Hindi speakers
 - Students preparing for TOPIK
 - Daily vocabulary practice
-- Self-paced learning workflows
 
 ---
 
 ## Features
 
-- Interactive vocabulary learning
-- Flashcard-based study system
-- Quiz and recall workflow
-- Responsive mobile-friendly UI
-- Text-to-Speech support
-- Theme and settings customization
-- Fast client-side performance
-- Local storage persistence
+- **Daily review**: due words first, then a few new words a day in shuffled order
+- **Recall cards**: the meaning stays hidden until you reveal it
+- **Four-button rating**: Again / Hard / Good / Easy, with the next interval shown on each button
+- **FSRS scheduling** through [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), tuned by a single "target recall" setting
+- **Saved progress**: cards and the full review history are stored in IndexedDB
+- **Undo** the last answer
+- **Browse mode**: flip through all 1,670 words in order or at random
+- **Text-to-speech** in Korean with voice, speed and pitch controls
+- **Themes and card colors**, remembered between visits
+
+### Keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `Space` / `Enter` | Show answer, then rate Good |
+| `1` `2` `3` `4` | Again, Hard, Good, Easy |
+| `R` | Play audio |
+| `U` | Undo last answer |
+| `←` `→` | Previous / next card in Browse |
+
+---
+
+## How it works
+
+1. Every word starts as **new**. You see up to *N* new words a day (10 by default).
+2. After each answer, FSRS updates the word's **stability** and **difficulty** and picks the next review date so that your chance of remembering it is about your target recall (90% by default).
+3. Words you miss come back within the same session; words you know well come back days or months later.
+4. Every answer is kept in an append-only log, so the schedule can be re-tuned later without losing progress.
 
 ---
 
@@ -55,15 +74,21 @@ Built for:
 ## Tech Stack
 
 ### Frontend
-- **React 19** — component-based UI framework
-- **TypeScript** — type-safe JavaScript development
-- **Vite** — modern frontend build tool
-- **Tailwind CSS** — utility-first styling framework
-- **React Router** — client-side routing
+- **React 19** with **TypeScript**
+- **Vite** for development and builds
+- **Tailwind CSS 4** via `@tailwindcss/vite`
+- **React Router** (hash routing, works on any static host)
+
+### Learning engine
+- **ts-fsrs**: FSRS-6 spaced repetition scheduler
+- **IndexedDB** (via `idb`): cards and review history
+- **localStorage**: settings
 
 ### Browser APIs
-- **Web Speech API** — text-to-speech functionality
-- **Local Storage API** — persistent user settings
+- **Web Speech API**: Korean text-to-speech
+
+### Testing
+- **Vitest** with `fake-indexeddb`
 
 ---
 
@@ -71,21 +96,20 @@ Built for:
 
 ```bash
 Vocab-korean/
-│
-├── public/             # Static assets
+├── data/
+│   ├── ko_hi_en_vocab.csv   # Word list: Korean, Hindi, English
+│   └── asset/               # README screenshots
 ├── src/
-│   ├── components/     # Reusable UI components
-│   ├── pages/          # Application pages
-│   ├── routes/         # Routing configuration
-│   ├── hooks/          # Custom React hooks
-│   ├── utils/          # Utility functions
-│   ├── styles/         # Global styles
-│   └── assets/         # Images and local assets
-│
-├── data/asset/         # README screenshots
+│   ├── components/          # Header, footer, settings panel
+│   ├── hooks/               # Review session, speech, saved state
+│   ├── lib/                 # CSV parser, FSRS wrapper, queue, storage
+│   ├── pages/               # Review, Browse, Contact
+│   ├── App.tsx
+│   └── main.tsx
+├── index.html
 ├── package.json
 └── vite.config.ts
-````
+```
 
 ---
 
@@ -93,8 +117,8 @@ Vocab-korean/
 
 ### Prerequisites
 
-* Node.js 16+
-* npm or pnpm
+* Node.js 20+
+* npm
 
 ### Installation
 
@@ -110,6 +134,9 @@ npm install
 
 # Start development server
 npm run dev
+
+# Run tests
+npm test
 ```
 
 Application runs at:
@@ -142,15 +169,16 @@ npm run preview
 
 ---
 
-## Planned Features
+## Roadmap
 
-* AI-generated example sentences
-* Personalized learning recommendations
-* Multi-language vocabulary support
-* User authentication
-* Cloud synchronization
-* Offline learning support
-* Learning analytics dashboard
+* Corrected Hindi meanings for every word
+* Quiz modes: multiple choice, listening, typing with Hangul feedback
+* Stats page with retention, forecast and word stages
+* Daily goal and streak
+* Backup export and import
+* Installable offline app (PWA)
+* Example sentences and cloze cards
+* Optional cloud sync
 
 ---
 
