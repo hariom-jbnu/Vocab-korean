@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildChoices, gradeChoice, meaningLines, meanings, pickDistractors } from './quiz';
-import { Rating } from './srs';
+import { buildChoices, chooseExercise, gradeChoice, meaningLines, meanings, pickDistractors } from './quiz';
+import { newCard, Rating, State } from './srs';
 import type { VocabItem } from '../types';
 
 const w = (ko: string, en: string, hi = ko): VocabItem => ({ id: ko, ko, en, hi });
@@ -79,5 +79,21 @@ describe('meaningLines', () => {
   it('shows both meanings when the learner hid both', () => {
     expect(meaningLines(pool[0], { ko: true, en: false, hi: false })).toEqual({ en: 'bag', hi: 'थैला' });
     expect(meaningLines(pool[0], { ko: true, en: true, hi: false })).toEqual({ en: 'bag', hi: undefined });
+  });
+});
+
+describe('chooseExercise', () => {
+  const now = new Date();
+  const review = (stability: number) => ({ ...newCard('가', now), state: State.Review, stability });
+
+  it('starts new and learning words with multiple choice', () => {
+    expect(chooseExercise(undefined, true)).toBe('choice');
+    expect(chooseExercise({ ...newCard('가', now), state: State.Learning, stability: 30 }, true)).toBe('choice');
+  });
+
+  it('moves stable words to the listening round when audio is available', () => {
+    expect(chooseExercise(review(1), true)).toBe('choice');
+    expect(chooseExercise(review(5), true)).toBe('listen');
+    expect(chooseExercise(review(5), false)).toBe('choice');
   });
 });

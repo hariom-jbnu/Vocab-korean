@@ -5,6 +5,8 @@ import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
 
 interface ChoiceQuizProps {
+  /** choice: read the word; listen: hear it with the word hidden. */
+  mode: 'choice' | 'listen';
   word: VocabItem;
   pool: readonly VocabItem[];
   visibility: VisibilitySettings;
@@ -15,15 +17,21 @@ interface ChoiceQuizProps {
   paused: boolean;
 }
 
-/** See the Korean word, pick its meaning from four options. */
-const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ word, pool, visibility, cardBg, badge, speak, onAnswer, paused }) => {
+/** See (or hear) the Korean word and pick its meaning from four options. */
+const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, cardBg, badge, speak, onAnswer, paused }) => {
   const choices = useMemo(() => buildChoices(word, pool), [word, pool]);
   const [picked, setPicked] = useState<number | null>(null);
   const startedAt = useRef(Date.now());
   const answeredAfter = useRef(0);
   const sent = useRef(false);
 
+  const listening = mode === 'listen';
   const correctIndex = choices.findIndex((c) => c.id === word.id);
+
+  // In the listening round the audio is the question, so play it right away.
+  useEffect(() => {
+    if (listening) speak(word.ko);
+  }, [listening, speak, word.ko]);
   const done = picked !== null;
   const correct = picked === correctIndex;
 
@@ -73,9 +81,19 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ word, pool, visibility, cardBg,
         >
           <i className="bi bi-volume-up-fill"></i>
         </button>
-        <h1 lang="ko" className="text-7xl md:text-8xl font-black tracking-tight leading-none text-center break-keep">
-          {word.ko}
-        </h1>
+        {listening && !done ? (
+          <button
+            onClick={() => speak(word.ko)}
+            aria-label="Play the word again"
+            className="w-28 h-28 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-6xl transition-all active:scale-95"
+          >
+            <i className="bi bi-volume-up-fill"></i>
+          </button>
+        ) : (
+          <h1 lang="ko" className="text-7xl md:text-8xl font-black tracking-tight leading-none text-center break-keep">
+            {word.ko}
+          </h1>
+        )}
         {done ? (
           <div className="flex flex-col items-center text-center mt-6 space-y-1 animate-fadeIn">
             {lines.en && <p className="text-2xl md:text-3xl font-bold">{lines.en}</p>}
@@ -86,7 +104,9 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ word, pool, visibility, cardBg,
             )}
           </div>
         ) : (
-          <p className="mt-8 text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Pick the meaning</p>
+          <p className="mt-8 text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
+            {listening ? 'What did you hear?' : 'Pick the meaning'}
+          </p>
         )}
       </div>
 

@@ -40,7 +40,7 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = usePersistentState<Settings>('settings', DEFAULT_SETTINGS);
   const [visibility, setVisibility] = usePersistentState<VisibilitySettings>('visibility', { ko: true, hi: true, en: true });
-  const { voices, speak } = useSpeech(settings);
+  const { voices, speak, supported, hasKoreanVoice } = useSpeech(settings);
 
   const currentTheme = THEMES[settings.theme] ?? THEMES[ThemeType.NAVY];
   const openSettings = () => setIsSettingsOpen(true);
@@ -90,6 +90,7 @@ const App: React.FC = () => {
                   visibility={visibility}
                   theme={currentTheme}
                   speak={speak}
+                  canListen={supported && hasKoreanVoice}
                   paused={isSettingsOpen}
                 />
               }

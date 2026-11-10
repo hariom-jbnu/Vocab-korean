@@ -5,6 +5,7 @@ import { useReviewSession } from '../hooks/useReviewSession';
 import { formatInterval, GRADE_LABELS, GRADES, type Grade } from '../lib/srs';
 import { contrastText } from '../lib/color';
 import ChoiceQuiz from '../components/ChoiceQuiz';
+import { chooseExercise } from '../lib/quiz';
 
 interface ReviewProps {
   vocab: VocabItem[];
@@ -12,6 +13,8 @@ interface ReviewProps {
   visibility: VisibilitySettings;
   theme: ThemeColors;
   speak: (text: string) => void;
+  /** True when the browser has a Korean voice for the listening round. */
+  canListen: boolean;
   /** Keyboard shortcuts pause while a dialog is open. */
   paused: boolean;
 }
@@ -26,7 +29,7 @@ const GRADE_STYLES: Record<Grade, string> = {
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
-const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, speak, paused }) => {
+const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, speak, canListen, paused }) => {
   const session = useReviewSession(vocab, settings);
   const { current, revealed, reveal, answer, undo, canUndo } = session;
   const quiz = settings.answerMode === 'quiz';
@@ -127,6 +130,7 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
       {current && quiz ? (
         <ChoiceQuiz
           key={session.cardKey}
+          mode={chooseExercise(session.currentCard, canListen)}
           word={current}
           pool={vocab}
           visibility={visibility}

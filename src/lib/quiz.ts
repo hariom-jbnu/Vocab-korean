@@ -1,7 +1,20 @@
 import type { VocabItem, VisibilitySettings } from '../types';
-import { Rating, type Grade } from './srs';
+import { Rating, State, type Grade, type WordCard } from './srs';
 
-export type Exercise = 'choice';
+/**
+ * The question ladder: recognise the written word first, then the spoken
+ * word, as the memory gets more stable.
+ */
+export type Exercise = 'choice' | 'listen';
+
+/** Stability (days) at which a word moves up to the listening round. */
+export const LISTEN_FROM_DAYS = 3;
+
+export function chooseExercise(card: WordCard | undefined, canListen: boolean): Exercise {
+  if (!card || card.state !== State.Review) return 'choice';
+  if (card.stability >= LISTEN_FROM_DAYS && canListen) return 'listen';
+  return 'choice';
+}
 
 /** Split a gloss such as "store, shop; eggplant" into its separate meanings. */
 export function meanings(gloss: string): string[] {
