@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Settings, ThemeColors, VisibilitySettings, VocabItem } from '../types';
+import type { DailyProgress } from '../hooks/useDailyProgress';
 import { useReviewSession } from '../hooks/useReviewSession';
 import { formatInterval, GRADE_LABELS, GRADES, type Grade } from '../lib/srs';
 import { contrastText } from '../lib/color';
@@ -10,6 +11,7 @@ import { chooseExercise } from '../lib/quiz';
 import { stageOf, STAGE_INFO } from '../lib/stats';
 
 interface ReviewProps {
+  daily: DailyProgress | null;
   vocab: VocabItem[];
   settings: Settings;
   setSettings: React.Dispatch<React.SetStateAction<Settings>>;
@@ -32,7 +34,7 @@ const GRADE_STYLES: Record<Grade, string> = {
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
-const Review: React.FC<ReviewProps> = ({ vocab, settings, setSettings, visibility, theme, speak, canListen, paused }) => {
+const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, visibility, theme, speak, canListen, paused }) => {
   const session = useReviewSession(vocab, settings);
   const { current, revealed, reveal, answer, undo, canUndo } = session;
   const quiz = settings.answerMode === 'quiz';
@@ -108,9 +110,9 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, setSettings, visibilit
             <i className="bi bi-plus-circle text-emerald-600 text-sm"></i>
             {session.counts.new} new
           </span>
-          <span title="Answers this session" className="hidden sm:flex items-center gap-1.5">
-            <i className="bi bi-check2-circle text-gray-500 text-sm"></i>
-            {session.stats.answered} done
+          <span title="Answers today toward your daily goal" className="hidden sm:flex items-center gap-1.5">
+            <i className={`bi bi-bullseye text-sm ${daily && daily.today >= settings.dailyGoal ? 'text-orange-500' : 'text-gray-500'}`}></i>
+            {daily?.today ?? session.stats.answered}/{settings.dailyGoal} today
           </span>
         </div>
         <button
@@ -243,13 +245,17 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, setSettings, visibilit
       )}
 
       {!current && (
-        <DoneCard session={session} newPerDay={settings.newPerDay} />
+        <DoneCard session={session} newPerDay={settings.newPerDay} streak={daily?.streak.current ?? 0} />
       )}
     </div>
   );
 };
 
-const DoneCard: React.FC<{ session: ReturnType<typeof useReviewSession>; newPerDay: number }> = ({ session, newPerDay }) => {
+const DoneCard: React.FC<{ session: ReturnType<typeof useReviewSession>; newPerDay: number; streak: number }> = ({
+  session,
+  newPerDay,
+  streak,
+}) => {
   const { stats, dueTomorrow, newDoneToday } = session;
   return (
     <div className="w-full bg-white rounded-[3rem] shadow-2xl p-10 text-center text-gray-900 animate-fadeIn">
@@ -257,6 +263,11 @@ const DoneCard: React.FC<{ session: ReturnType<typeof useReviewSession>; newPerD
         <i className="bi bi-patch-check-fill text-emerald-500"></i>
       </div>
       <h2 className="text-3xl font-black tracking-tight mb-2">All done for today</h2>
+      {streak > 0 && (
+        <p className="text-sm font-black text-orange-600 mb-2">
+          <i className="bi bi-fire"></i> {streak}-day streak
+        </p>
+      )}
       <p className="text-gray-500 font-medium mb-8">
         {stats.answered > 0
           ? `You answered ${stats.answered} cards and started ${stats.newLearned} new words.`

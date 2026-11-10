@@ -38,6 +38,8 @@ export interface Settings {
   cardBg: string;
   /** New words introduced per study day. */
   newPerDay: number;
+  /** Answers per day the learner aims for. */
+  dailyGoal: number;
   /** FSRS desired retention, 0.7 to 0.97. */
   retention: number;
   /** Seed for this learner's shuffled new-word order. */

@@ -23,6 +23,13 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<ProgressDB>> | null = null;
 
+/** Fired on window after progress changes, so headers and stats can refresh. */
+export const PROGRESS_EVENT = 'vocab:progress';
+
+function notifyProgress(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(PROGRESS_EVENT));
+}
+
 function db(): Promise<IDBPDatabase<ProgressDB>> {
   if (!dbPromise) {
     dbPromise = openDB<ProgressDB>(DB_NAME, DB_VERSION, {
@@ -54,6 +61,7 @@ export async function saveAnswer(card: WordCard, record: ReviewRecord): Promise<
     tx.objectStore('reviews').add(record),
     tx.done,
   ]);
+  notifyProgress();
   return key;
 }
 
@@ -65,6 +73,7 @@ export async function undoAnswer(previous: WordCard | undefined, wordId: string,
     tx.objectStore('reviews').delete(recordId),
     tx.done,
   ]);
+  notifyProgress();
 }
 
 export async function getReviewsSince(since: Date): Promise<ReviewRecord[]> {
@@ -78,6 +87,7 @@ export async function getAllReviews(): Promise<ReviewRecord[]> {
 export async function clearProgress(): Promise<void> {
   const tx = (await db()).transaction(['cards', 'reviews'], 'readwrite');
   await Promise.all([tx.objectStore('cards').clear(), tx.objectStore('reviews').clear(), tx.done]);
+  notifyProgress();
 }
 
 /** Close the connection (used by tests to start from a fresh database). */

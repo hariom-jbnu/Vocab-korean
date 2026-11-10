@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Settings, VocabItem } from '../types';
+import type { DailyProgress } from '../hooks/useDailyProgress';
 import { getAllCards, getAllReviews } from '../lib/db';
 import type { ReviewRecord, WordCard } from '../lib/srs';
 import { startOfStudyDay } from '../lib/day';
 import { dailyActivity, forecast, hardestWords, KNOWN_DAYS, stageCounts, STAGE_INFO, STAGES, trueRetention, type Stage } from '../lib/stats';
 
 interface StatsProps {
+  daily: DailyProgress | null;
   vocab: VocabItem[];
   settings: Settings;
   speak: (text: string) => void;
@@ -95,7 +97,7 @@ const BarChart: React.FC<{ bars: Bar[]; ariaLabel: string }> = ({ bars, ariaLabe
 
 const shortDate = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-const Stats: React.FC<StatsProps> = ({ vocab, settings, speak }) => {
+const Stats: React.FC<StatsProps> = ({ daily, vocab, settings, speak }) => {
   const [data, setData] = useState<{ cards: Map<string, WordCard>; reviews: ReviewRecord[] } | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -147,17 +149,23 @@ const Stats: React.FC<StatsProps> = ({ vocab, settings, speak }) => {
     <div className="w-full max-w-4xl flex flex-col gap-4 py-2 animate-fadeIn">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Tile label="Words known" value={String(view.known)} note={`of ${view.total}, remembered ${KNOWN_DAYS}+ days`} />
-        <Tile label="Words started" value={String(view.started)} note={`${view.total - view.started} still new`} />
+        <Tile
+          label="Day streak"
+          value={String(daily?.streak.current ?? 0)}
+          note={daily?.streak.frozen.length ? `${daily.streak.frozen.length} missed day forgiven` : 'one missed day a week is forgiven'}
+        />
         <Tile
           label="Recall, 30 days"
           value={view.retention.rate === null ? '–' : `${Math.round(view.retention.rate * 100)}%`}
           note={view.retention.count ? `target ${target}%, ${view.retention.count} reviews` : 'needs a few reviews'}
         />
-        <Tile label="Answers today" value={String(view.today)} note={`${view.due[0]} still due today`} />
+        <Tile label="Answers today" value={`${view.today}/${settings.dailyGoal}`} note={`${view.due[0]} still due today`} />
       </div>
 
       <Panel title="Word stages" subtitle="Stages follow how long the scheduler expects you to remember each word.">
-        <p className="text-[11px] font-bold text-gray-500 mb-2">{view.started} words started</p>
+        <p className="text-[11px] font-bold text-gray-500 mb-2">
+          {view.started} words started, {view.total - view.started} still new
+        </p>
         <div className="flex h-5 w-full gap-[2px] rounded-[4px] overflow-hidden" role="img" aria-label="Started words by stage">
           {STAGES.filter((s) => s !== 'new').map((s) =>
             view.counts[s] ? (

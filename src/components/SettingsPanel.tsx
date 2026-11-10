@@ -83,6 +83,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <p className="text-[11px] text-gray-400 mt-1">Each new word brings a few reviews a day for the next week, so start small.</p>
             </div>
             <div>
+              <label htmlFor="daily-goal" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
+                Daily goal ({settings.dailyGoal} answers)
+              </label>
+              <input
+                id="daily-goal"
+                type="range" min="5" max="100" step="5"
+                value={settings.dailyGoal}
+                onChange={(e) => setSettings(prev => ({ ...prev, dailyGoal: parseInt(e.target.value, 10) }))}
+                className="w-full accent-indigo-600 cursor-pointer"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">Any day with at least 5 answers keeps your streak going.</p>
+            </div>
+            <div>
               <label htmlFor="retention" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Target recall</label>
               <select
                 id="retention"
