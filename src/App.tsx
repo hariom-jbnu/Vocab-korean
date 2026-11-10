@@ -6,6 +6,7 @@ import Contact from './pages/Contact';
 import Footer from './components/Footer';
 import { VocabItem, ThemeType, Settings } from './types';
 import { THEMES, LOGO_PATH } from './constants';
+import { parseWords } from './lib/words';
 import vocabCsv from '../data/ko_hi_en_vocab.csv?raw';
 
 const App: React.FC = () => {
@@ -21,22 +22,8 @@ const App: React.FC = () => {
     cardBg: '#FFFFFF'
   });
 
-  const parseCSV = (text: string) => {
-    const lines = text.split(/\r?\n/);
-    const rows = lines.slice(1);
-    return rows.filter(row => row.trim() !== '').map(row => {
-      const matches = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-      if (!matches || matches.length < 3) return { ko: '', hi: '', en: '' };
-      return {
-        ko: matches[0].replace(/"/g, '').trim(),
-        hi: matches[1].replace(/"/g, '').trim(),
-        en: matches[2].replace(/"/g, '').trim()
-      };
-    });
-  };
-
   useEffect(() => {
-    setVocab(parseCSV(vocabCsv));
+    setVocab(parseWords(vocabCsv));
   }, []);
 
   const currentTheme = THEMES[settings.theme];

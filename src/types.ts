@@ -1,5 +1,7 @@
 
 export interface VocabItem {
+  /** Stable id used to store progress (the Korean headword). */
+  id: string;
   ko: string;
   hi: string;
   en: string;
