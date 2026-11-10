@@ -36,4 +36,10 @@ export interface Settings {
   theme: ThemeType;
   isRandom: boolean;
   cardBg: string;
+  /** New words introduced per study day. */
+  newPerDay: number;
+  /** FSRS desired retention, 0.7 to 0.97. */
+  retention: number;
+  /** Seed for this learner's shuffled new-word order. */
+  seed: number;
 }

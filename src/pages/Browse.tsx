@@ -1,46 +1,26 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { VocabItem, Settings, VisibilitySettings, ThemeColors } from '../types';
-import SettingsPanel from '../components/SettingsPanel';
+import React, { useEffect, useCallback, useRef } from 'react';
+import { VocabItem, Settings, VisibilitySettings } from '../types';
 import { CARD_PALETTE } from '../constants';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { contrastText } from '../lib/color';
 
-interface HomeProps {
+interface BrowseProps {
   vocab: VocabItem[];
   settings: Settings;
   setSettings: React.Dispatch<React.SetStateAction<Settings>>;
-  theme: ThemeColors;
+  visibility: VisibilitySettings;
+  speak: (text: string) => void;
   isFullScreen: boolean;
   setIsFullScreen: (val: boolean) => void;
+  onOpenSettings: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFullScreen, setIsFullScreen }) => {
+/** Flip through the whole word list, in order or at random. */
+const Browse: React.FC<BrowseProps> = ({ vocab, settings, setSettings, visibility, speak, isFullScreen, setIsFullScreen, onOpenSettings }) => {
   const [savedIndex, setCurrentIndex] = usePersistentState('browse:index', 0);
   const currentIndex = vocab.length > 0 ? Math.min(Math.max(savedIndex, 0), vocab.length - 1) : 0;
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [visibility, setVisibility] = usePersistentState<VisibilitySettings>('visibility', { ko: true, hi: true, en: true });
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const lastIndex = useRef(0);
-
-  useEffect(() => {
-    const handleVoicesChanged = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
-    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-    handleVoicesChanged();
-  }, []);
-
-  const speak = useCallback((text: string) => {
-    if (!text) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    const selectedVoice = voices.find(v => v.name === settings.voiceName);
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = settings.rate;
-    utterance.pitch = settings.pitch;
-    utterance.lang = 'ko-KR';
-    window.speechSynthesis.speak(utterance);
-  }, [voices, settings]);
 
   const handleNext = useCallback(() => {
     if (vocab.length === 0) return;
@@ -66,6 +46,8 @@ const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFull
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       if (e.key === 'ArrowRight') handleNext();
       if (e.key === 'ArrowLeft') handlePrev();
       if (e.key === 'Enter') {
@@ -114,17 +96,7 @@ const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFull
 
   const currentWord = vocab[currentIndex];
   
-  // High-precision contrast calculator for readability
-  const getContrastColor = (hex: string) => {
-    const cleanHex = hex.replace('#', '');
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 128 ? '#0F172A' : '#F8FAFC';
-  };
-
-  const textContrast = getContrastColor(settings.cardBg);
+  const textContrast = contrastText(settings.cardBg);
 
   return (
     <div className={`w-full flex flex-col items-center transition-all duration-500 ${isFullScreen ? 'h-screen justify-center' : 'space-y-6 py-2'}`}>
@@ -148,7 +120,7 @@ const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFull
           </div>
 
           <button 
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={onOpenSettings}
             className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/80 text-gray-800 font-black hover:bg-white transition-all text-[9px] shadow-sm border border-black/5"
           >
             <i className="bi bi-gear-fill"></i>
@@ -245,19 +217,8 @@ const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFull
         </div>
       )}
 
-      {isSettingsOpen && (
-        <SettingsPanel 
-          settings={settings}
-          setSettings={setSettings}
-          visibility={visibility}
-          setVisibility={setVisibility}
-          voices={voices}
-          theme={theme}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      )}
     </div>
   );
 };
 
-export default Home;
+export default Browse;

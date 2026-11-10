@@ -34,6 +34,38 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <h2 className="text-3xl font-black mb-8 tracking-tight">Settings</h2>
 
         <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+          {/* Daily study */}
+          <section className="space-y-5">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Daily Study</h3>
+            <div>
+              <label htmlFor="new-per-day" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
+                New words per day ({settings.newPerDay})
+              </label>
+              <input
+                id="new-per-day"
+                type="range" min="0" max="30" step="1"
+                value={settings.newPerDay}
+                onChange={(e) => setSettings(prev => ({ ...prev, newPerDay: parseInt(e.target.value, 10) }))}
+                className="w-full accent-indigo-600 cursor-pointer"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">Each new word brings a few reviews a day for the next week, so start small.</p>
+            </div>
+            <div>
+              <label htmlFor="retention" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Target recall</label>
+              <select
+                id="retention"
+                className="w-full p-3 rounded-2xl border bg-gray-50 text-sm font-bold focus:ring-4 focus:ring-indigo-100 outline-none transition-all"
+                value={settings.retention}
+                onChange={(e) => setSettings(prev => ({ ...prev, retention: parseFloat(e.target.value) }))}
+              >
+                <option value={0.8}>80%: fewer reviews</option>
+                <option value={0.85}>85%</option>
+                <option value={0.9}>90%: recommended</option>
+                <option value={0.95}>95%: exam prep, more reviews</option>
+              </select>
+            </div>
+          </section>
+
           {/* Theme Selection */}
           <section>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Background Palette</h3>
@@ -52,7 +84,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
           {/* Random / Sequential Toggle */}
           <section>
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Navigation Mode</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Browse Order</h3>
             <div className="flex gap-2">
               <button
                 onClick={() => setSettings(prev => ({ ...prev, isRandom: false }))}
