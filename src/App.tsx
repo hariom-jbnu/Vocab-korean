@@ -5,7 +5,8 @@ import Home from './pages/Home';
 import Contact from './pages/Contact';
 import Footer from './components/Footer';
 import { VocabItem, ThemeType, Settings } from './types';
-import { THEMES, VOCAB_CSV_URL, LOGO_PATH } from './constants';
+import { THEMES, LOGO_PATH } from './constants';
+import vocabCsv from '../data/ko_hi_en_vocab.csv?raw';
 
 const App: React.FC = () => {
   const [vocab, setVocab] = useState<VocabItem[]>([]);
@@ -35,10 +36,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    fetch(VOCAB_CSV_URL)
-      .then(res => res.text())
-      .then(text => setVocab(parseCSV(text)))
-      .catch(err => console.error("Error loading CSV:", err));
+    setVocab(parseCSV(vocabCsv));
   }, []);
 
   const currentTheme = THEMES[settings.theme];
