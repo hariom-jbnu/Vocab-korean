@@ -23,4 +23,19 @@ describe('parseWords', () => {
       expect(w.en, `English for ${w.id}`).not.toBe('');
     }
   });
+
+  it('has Hindi meanings in Devanagari, not machine-translation leftovers', () => {
+    const byId = new Map(parseWords(csv).map((w) => [w.id, w]));
+    for (const w of byId.values()) {
+      expect(w.hi, `Hindi for ${w.id}`).not.toMatch(/[A-Za-z]/);
+    }
+    // Spot checks for meanings that were translated from the wrong English sense
+    expect(byId.get('가게')?.hi).toBe('दुकान');
+    expect(byId.get('가볍다')?.hi).toBe('हल्का');
+    expect(byId.get('글쎄요')?.hi).toContain('पता नहीं');
+    expect(byId.get('켜다')?.hi).toContain('चालू करना');
+    expect(byId.get('코트')?.hi).toBe('कोट');
+    expect(byId.get('공항')?.hi).toBe('हवाई अड्डा');
+    expect(byId.get('은행')?.hi).toBe('बैंक');
+  });
 });
