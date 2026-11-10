@@ -7,20 +7,23 @@ import Footer from './components/Footer';
 import { VocabItem, ThemeType, Settings } from './types';
 import { THEMES, LOGO_PATH } from './constants';
 import { parseWords } from './lib/words';
+import { usePersistentState } from './hooks/usePersistentState';
 import vocabCsv from '../data/ko_hi_en_vocab.csv?raw';
+
+const DEFAULT_SETTINGS: Settings = {
+  voiceName: '',
+  rate: 0.8,
+  pitch: 1.0,
+  autoSpeak: false,
+  theme: ThemeType.NAVY,
+  isRandom: false,
+  cardBg: '#FFFFFF'
+};
 
 const App: React.FC = () => {
   const [vocab, setVocab] = useState<VocabItem[]>([]);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    voiceName: '',
-    rate: 0.8,
-    pitch: 1.0,
-    autoSpeak: false,
-    theme: ThemeType.NAVY,
-    isRandom: false,
-    cardBg: '#FFFFFF'
-  });
+  const [settings, setSettings] = usePersistentState<Settings>('settings', DEFAULT_SETTINGS);
 
   useEffect(() => {
     setVocab(parseWords(vocabCsv));

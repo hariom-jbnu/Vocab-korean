@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { VocabItem, Settings, VisibilitySettings, ThemeColors } from '../types';
 import SettingsPanel from '../components/SettingsPanel';
 import { CARD_PALETTE } from '../constants';
+import { usePersistentState } from '../hooks/usePersistentState';
 
 interface HomeProps {
   vocab: VocabItem[];
@@ -14,9 +15,10 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ vocab, settings, setSettings, theme, isFullScreen, setIsFullScreen }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [savedIndex, setCurrentIndex] = usePersistentState('browse:index', 0);
+  const currentIndex = vocab.length > 0 ? Math.min(Math.max(savedIndex, 0), vocab.length - 1) : 0;
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [visibility, setVisibility] = useState<VisibilitySettings>({ ko: true, hi: true, en: true });
+  const [visibility, setVisibility] = usePersistentState<VisibilitySettings>('visibility', { ko: true, hi: true, en: true });
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const lastIndex = useRef(0);
 
