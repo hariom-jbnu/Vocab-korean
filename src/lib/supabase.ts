@@ -4,8 +4,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * Supabase is optional. Without its settings in the build the app works as
  * before: progress stays in this browser and there is no sign-in.
  */
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const env = import.meta.env;
+// The NEXT_PUBLIC_ names are what the Supabase integration on Vercel sets.
+const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const cloudConfigured = !!(url && key);
 

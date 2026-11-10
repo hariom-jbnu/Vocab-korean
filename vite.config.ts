@@ -34,6 +34,10 @@ function offline(): Plugin {
 export default defineConfig({
   // Relative base so the build works from any folder on static hosting.
   base: './',
+  // Besides VITE_ variables, read the public Supabase settings that the
+  // Supabase integration on Vercel adds to a project. Only these public
+  // values reach the browser; secret keys have no matching prefix.
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_SUPABASE_'],
   server: {
     port: 3000,
     host: '0.0.0.0',

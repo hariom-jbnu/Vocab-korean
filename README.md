@@ -210,8 +210,11 @@ Create an OAuth client in Google Cloud, add it under **Authentication > Sign In 
 ## Deploy to Vercel
 
 1. Import the repository at [vercel.com/new](https://vercel.com/new). The settings in `vercel.json` (Vite, `npm run build`, `dist`) are picked up automatically.
-2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (and `VITE_GOOGLE_SIGN_IN` if used) under **Settings > Environment Variables** for Production and Preview.
-3. Deploy. Every push to `main` deploys to production and every pull request gets a preview URL.
+2. Add a database: in the Vercel project open **Storage > Create Database > Supabase** and connect it to the project. Vercel adds `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which the app reads as is. With a Supabase project made elsewhere, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` instead.
+3. Run the migration in the new project (see *Set up Supabase* above) and set its Site URL to the Vercel domain.
+4. Redeploy. Every push to `main` deploys to production and every pull request gets a preview URL.
+
+Only the public URL and publishable key reach the browser. The secret key and database password that the integration also adds stay on Vercel.
 
 The app uses hash routes (`/#/stats`), so no rewrite rules are needed. `sw.js` is served with `no-cache` so new releases reach installed apps.
 
