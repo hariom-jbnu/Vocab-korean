@@ -5,11 +5,13 @@ import { useReviewSession } from '../hooks/useReviewSession';
 import { formatInterval, GRADE_LABELS, GRADES, type Grade } from '../lib/srs';
 import { contrastText } from '../lib/color';
 import ChoiceQuiz from '../components/ChoiceQuiz';
+import TypingQuiz from '../components/TypingQuiz';
 import { chooseExercise } from '../lib/quiz';
 
 interface ReviewProps {
   vocab: VocabItem[];
   settings: Settings;
+  setSettings: React.Dispatch<React.SetStateAction<Settings>>;
   visibility: VisibilitySettings;
   theme: ThemeColors;
   speak: (text: string) => void;
@@ -29,15 +31,18 @@ const GRADE_STYLES: Record<Grade, string> = {
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
-const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, speak, canListen, paused }) => {
+const Review: React.FC<ReviewProps> = ({ vocab, settings, setSettings, visibility, theme, speak, canListen, paused }) => {
   const session = useReviewSession(vocab, settings);
   const { current, revealed, reveal, answer, undo, canUndo } = session;
   const quiz = settings.answerMode === 'quiz';
+  const exercise =
+    quiz && current ? chooseExercise(session.currentCard, { canListen, canType: settings.typeAnswers }) : null;
 
-  // Speak the word when a new card appears.
+  // Speak the word when a new card appears, unless the audio would give the answer away.
+  const speakOnShow = settings.autoSpeak && exercise !== 'type' && exercise !== 'listen';
   useEffect(() => {
-    if (current && settings.autoSpeak) speak(current.ko);
-  }, [current, settings.autoSpeak, speak]);
+    if (current && speakOnShow) speak(current.ko);
+  }, [current, speakOnShow, speak]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -127,10 +132,22 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
         </p>
       )}
 
-      {current && quiz ? (
+      {current && exercise === 'type' ? (
+        <TypingQuiz
+          key={session.cardKey}
+          word={current}
+          visibility={visibility}
+          cardBg={settings.cardBg}
+          badge={badge}
+          speak={speak}
+          onAnswer={answer}
+          onDisableTyping={() => setSettings((prev) => ({ ...prev, typeAnswers: false }))}
+          paused={paused}
+        />
+      ) : current && (exercise === 'choice' || exercise === 'listen') ? (
         <ChoiceQuiz
           key={session.cardKey}
-          mode={chooseExercise(session.currentCard, canListen)}
+          mode={exercise}
           word={current}
           pool={vocab}
           visibility={visibility}
@@ -212,7 +229,13 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
 
       {current && (
         <p className="hidden md:flex flex-wrap justify-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-50">
-          {quiz ? <span>1-4 pick · Space continue</span> : <span>Space reveal / good · 1-4 rate</span>}
+          {exercise === 'type' ? (
+            <span>Enter check · Enter continue</span>
+          ) : quiz ? (
+            <span>1-4 pick · Space continue</span>
+          ) : (
+            <span>Space reveal / good · 1-4 rate</span>
+          )}
           <span>R audio</span>
           <span>U undo</span>
         </p>

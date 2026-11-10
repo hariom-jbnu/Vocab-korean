@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildChoices, chooseExercise, gradeChoice, meaningLines, meanings, pickDistractors } from './quiz';
+import { buildChoices, chooseExercise, gradeChoice, gradeTyped, meaningLines, meanings, pickDistractors } from './quiz';
 import { newCard, Rating, State } from './srs';
 import type { VocabItem } from '../types';
 
@@ -86,14 +86,31 @@ describe('chooseExercise', () => {
   const now = new Date();
   const review = (stability: number) => ({ ...newCard('가', now), state: State.Review, stability });
 
+  const all = { canListen: true, canType: true };
+
   it('starts new and learning words with multiple choice', () => {
-    expect(chooseExercise(undefined, true)).toBe('choice');
-    expect(chooseExercise({ ...newCard('가', now), state: State.Learning, stability: 30 }, true)).toBe('choice');
+    expect(chooseExercise(undefined, all)).toBe('choice');
+    expect(chooseExercise({ ...newCard('가', now), state: State.Learning, stability: 30 }, all)).toBe('choice');
   });
 
   it('moves stable words to the listening round when audio is available', () => {
-    expect(chooseExercise(review(1), true)).toBe('choice');
-    expect(chooseExercise(review(5), true)).toBe('listen');
-    expect(chooseExercise(review(5), false)).toBe('choice');
+    expect(chooseExercise(review(1), all)).toBe('choice');
+    expect(chooseExercise(review(5), all)).toBe('listen');
+    expect(chooseExercise(review(5), { canListen: false, canType: true })).toBe('choice');
+  });
+
+  it('moves well-known words to typing unless typing is turned off', () => {
+    expect(chooseExercise(review(30), all)).toBe('type');
+    expect(chooseExercise(review(30), { canListen: true, canType: false })).toBe('listen');
+  });
+});
+
+describe('gradeTyped', () => {
+  it('rewards quick exact answers and is lenient on one-letter slips', () => {
+    expect(gradeTyped({ correct: false, nearMiss: false }, 3000)).toBe(Rating.Again);
+    expect(gradeTyped({ correct: false, nearMiss: true }, 3000)).toBe(Rating.Hard);
+    expect(gradeTyped({ correct: true, nearMiss: false }, 3000)).toBe(Rating.Easy);
+    expect(gradeTyped({ correct: true, nearMiss: false }, 9000)).toBe(Rating.Good);
+    expect(gradeTyped({ correct: true, nearMiss: false }, 20000)).toBe(Rating.Hard);
   });
 });

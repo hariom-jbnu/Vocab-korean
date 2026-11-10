@@ -44,4 +44,6 @@ export interface Settings {
   seed: number;
   /** Quiz checks the answer for you; flip lets you rate yourself. */
   answerMode: 'quiz' | 'flip';
+  /** Include the typing round for well-known words (needs a Korean keyboard). */
+  typeAnswers: boolean;
 }

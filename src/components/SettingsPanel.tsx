@@ -55,6 +55,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 ))}
               </div>
             </div>
+            {settings.answerMode === 'quiz' && (
+              <label className="flex items-center justify-between gap-4 cursor-pointer p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+                <span>
+                  <span className="block text-sm font-black text-gray-700">Typing round</span>
+                  <span className="block text-[11px] text-gray-400">Type well-known words in Korean (needs a Korean keyboard)</span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 accent-indigo-600"
+                  checked={settings.typeAnswers}
+                  onChange={() => setSettings(prev => ({ ...prev, typeAnswers: !prev.typeAnswers }))}
+                />
+              </label>
+            )}
             <div>
               <label htmlFor="new-per-day" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 New words per day ({settings.newPerDay})

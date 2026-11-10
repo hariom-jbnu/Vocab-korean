@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS: Settings = {
   // Picked once and saved, so each learner keeps the same new-word order.
   seed: Math.floor(Math.random() * 2 ** 31),
   answerMode: 'quiz',
+  typeAnswers: true,
 };
 
 const NAV = [
@@ -87,6 +88,7 @@ const App: React.FC = () => {
                 <Review
                   vocab={vocab}
                   settings={settings}
+                  setSettings={setSettings}
                   visibility={visibility}
                   theme={currentTheme}
                   speak={speak}
