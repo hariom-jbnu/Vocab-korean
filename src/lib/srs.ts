@@ -15,11 +15,20 @@ export type { Grade };
 /** FSRS memory state for one word. `id` is the word id. */
 export interface WordCard extends Card {
   id: string;
+  /** When this copy was last changed on any device (ms). Newest copy wins in sync. */
+  updatedAt?: number;
+  /** Set while the change has not been uploaded yet. */
+  pending?: 1;
 }
 
 /** One answer, kept forever. FSRS can rebuild every card from these. */
 export interface ReviewRecord {
+  /** Local key in this browser. */
   id?: number;
+  /** Id shared across devices, so an answer synced twice is stored once. */
+  uid?: string;
+  /** Set while the answer has not been uploaded yet. */
+  pending?: 1;
   wordId: string;
   rating: Grade;
   /** Card state before this answer (New, Learning, Review, Relearning). */
