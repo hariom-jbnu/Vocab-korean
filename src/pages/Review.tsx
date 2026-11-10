@@ -7,6 +7,7 @@ import { contrastText } from '../lib/color';
 import ChoiceQuiz from '../components/ChoiceQuiz';
 import TypingQuiz from '../components/TypingQuiz';
 import { chooseExercise } from '../lib/quiz';
+import { stageOf, STAGE_INFO } from '../lib/stats';
 
 interface ReviewProps {
   vocab: VocabItem[];
@@ -86,7 +87,7 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, setSettings, visibilit
     <span
       className={`absolute top-6 left-7 text-[9px] font-black uppercase tracking-[0.3em] px-2.5 py-1 rounded-full ${session.isNew ? 'bg-emerald-500/15 text-emerald-600' : 'bg-sky-500/15 text-sky-600'}`}
     >
-      {session.isNew ? 'New word' : 'Review'}
+      {session.isNew ? 'New word' : STAGE_INFO[stageOf(session.currentCard)].label}
     </span>
   );
   const showEn = visibility.en || !visibility.hi;

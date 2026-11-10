@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { HashRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
 import Review from './pages/Review';
 import Browse from './pages/Browse';
+import Stats from './pages/Stats';
 import Contact from './pages/Contact';
 import Footer from './components/Footer';
 import SettingsPanel from './components/SettingsPanel';
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 const NAV = [
   { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review' },
+  { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats' },
   { to: '/browse', icon: 'bi-card-text', label: 'Browse' },
   { to: '/contact', icon: 'bi-person-lines-fill', label: 'Contact' },
 ];
@@ -112,6 +114,7 @@ const App: React.FC = () => {
                 />
               }
             />
+            <Route path="/stats" element={<Stats vocab={vocab} settings={settings} speak={speak} />} />
             <Route path="/contact" element={<Contact theme={currentTheme} />} />
           </Routes>
         </main>
