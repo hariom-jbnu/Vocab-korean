@@ -14,3 +14,12 @@ ReactDOM.createRoot(rootElement).render(
     <App />
   </React.StrictMode>
 );
+
+// Save the app for offline use. Only in builds, so dev reloads stay fresh.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // Offline support is optional; the app works without it.
+    });
+  });
+}
