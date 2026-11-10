@@ -13,6 +13,7 @@ import { DEFAULT_RETENTION } from './lib/srs';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useSpeech } from './hooks/useSpeech';
 import { useDailyProgress, type DailyProgress } from './hooks/useDailyProgress';
+import { CloudProvider } from './hooks/useCloud';
 import vocabCsv from '../data/ko_hi_en_vocab.csv?raw';
 
 const DEFAULT_SETTINGS: Settings = {
@@ -74,95 +75,97 @@ const App: React.FC = () => {
   const openSettings = () => setIsSettingsOpen(true);
 
   return (
-    <HashRouter>
-      <div
-        className={`min-h-screen flex flex-col transition-colors duration-500 font-sans ${isFullScreen ? 'overflow-hidden' : ''}`}
-        style={{ backgroundColor: currentTheme.background, color: currentTheme.text }}
-      >
-        {!isFullScreen && (
-          <header className="sticky top-0 z-50 shadow-sm px-3 md:px-6 py-3 bg-white/95 backdrop-blur-md border-b border-black/5 flex items-center justify-between text-gray-800">
-            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-              <Link to="/" className="shrink-0 transition-transform hover:scale-105 active:scale-95">
-                <img src={LOGO_PATH} alt="Vocab Korean" className="w-10 h-10 rounded-xl object-cover shadow-sm border border-black/5" />
-              </Link>
-              {daily && <StreakBadge daily={daily} goal={settings.dailyGoal} />}
-            </div>
+    <CloudProvider settings={settings} setSettings={setSettings}>
+      <HashRouter>
+        <div
+          className={`min-h-screen flex flex-col transition-colors duration-500 font-sans ${isFullScreen ? 'overflow-hidden' : ''}`}
+          style={{ backgroundColor: currentTheme.background, color: currentTheme.text }}
+        >
+          {!isFullScreen && (
+            <header className="sticky top-0 z-50 shadow-sm px-3 md:px-6 py-3 bg-white/95 backdrop-blur-md border-b border-black/5 flex items-center justify-between text-gray-800">
+              <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                <Link to="/" className="shrink-0 transition-transform hover:scale-105 active:scale-95">
+                  <img src={LOGO_PATH} alt="Vocab Korean" className="w-10 h-10 rounded-xl object-cover shadow-sm border border-black/5" />
+                </Link>
+                {daily && <StreakBadge daily={daily} goal={settings.dailyGoal} />}
+              </div>
 
-            <nav className="flex items-center md:gap-3">
-              {NAV.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end
-                  title={item.label}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl transition-all hover:bg-black/5 ${isActive ? 'text-indigo-600' : 'text-gray-800'}`
-                  }
-                >
-                  <i className={`bi ${item.icon} text-xl`}></i>
-                  <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">{item.label}</span>
-                </NavLink>
-              ))}
-              <button onClick={openSettings} title="Settings" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
-                <i className="bi bi-gear-fill text-xl"></i>
-              </button>
-            </nav>
-          </header>
-        )}
+              <nav className="flex items-center md:gap-3">
+                {NAV.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end
+                    title={item.label}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl transition-all hover:bg-black/5 ${isActive ? 'text-indigo-600' : 'text-gray-800'}`
+                    }
+                  >
+                    <i className={`bi ${item.icon} text-xl`}></i>
+                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+                  </NavLink>
+                ))}
+                <button onClick={openSettings} title="Settings" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
+                  <i className="bi bi-gear-fill text-xl"></i>
+                </button>
+              </nav>
+            </header>
+          )}
 
-        <main className={`flex-grow flex flex-col items-center justify-center w-full mx-auto ${isFullScreen ? 'p-0 h-screen' : 'p-4 md:p-8 max-w-6xl'}`}>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Review
-                  daily={daily}
-                  vocab={vocab}
-                  settings={settings}
-                  setSettings={setSettings}
-                  visibility={visibility}
-                  theme={currentTheme}
-                  speak={speak}
-                  canListen={supported && hasKoreanVoice}
-                  paused={isSettingsOpen}
-                />
-              }
+          <main className={`flex-grow flex flex-col items-center justify-center w-full mx-auto ${isFullScreen ? 'p-0 h-screen' : 'p-4 md:p-8 max-w-6xl'}`}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Review
+                    daily={daily}
+                    vocab={vocab}
+                    settings={settings}
+                    setSettings={setSettings}
+                    visibility={visibility}
+                    theme={currentTheme}
+                    speak={speak}
+                    canListen={supported && hasKoreanVoice}
+                    paused={isSettingsOpen}
+                  />
+                }
+              />
+              <Route
+                path="/browse"
+                element={
+                  <Browse
+                    vocab={vocab}
+                    settings={settings}
+                    setSettings={setSettings}
+                    visibility={visibility}
+                    speak={speak}
+                    isFullScreen={isFullScreen}
+                    setIsFullScreen={setIsFullScreen}
+                    onOpenSettings={openSettings}
+                  />
+                }
+              />
+              <Route path="/stats" element={<Stats vocab={vocab} settings={settings} speak={speak} daily={daily} />} />
+              <Route path="/contact" element={<Contact theme={currentTheme} />} />
+            </Routes>
+          </main>
+
+          {!isFullScreen && <Footer theme={currentTheme} />}
+
+          {isSettingsOpen && (
+            <SettingsPanel
+              settings={settings}
+              setSettings={setSettings}
+              visibility={visibility}
+              setVisibility={setVisibility}
+              voices={voices}
+              theme={currentTheme}
+              onClose={() => setIsSettingsOpen(false)}
             />
-            <Route
-              path="/browse"
-              element={
-                <Browse
-                  vocab={vocab}
-                  settings={settings}
-                  setSettings={setSettings}
-                  visibility={visibility}
-                  speak={speak}
-                  isFullScreen={isFullScreen}
-                  setIsFullScreen={setIsFullScreen}
-                  onOpenSettings={openSettings}
-                />
-              }
-            />
-            <Route path="/stats" element={<Stats vocab={vocab} settings={settings} speak={speak} daily={daily} />} />
-            <Route path="/contact" element={<Contact theme={currentTheme} />} />
-          </Routes>
-        </main>
-
-        {!isFullScreen && <Footer theme={currentTheme} />}
-
-        {isSettingsOpen && (
-          <SettingsPanel
-            settings={settings}
-            setSettings={setSettings}
-            visibility={visibility}
-            setVisibility={setVisibility}
-            voices={voices}
-            theme={currentTheme}
-            onClose={() => setIsSettingsOpen(false)}
-          />
-        )}
-      </div>
-    </HashRouter>
+          )}
+        </div>
+      </HashRouter>
+    </CloudProvider>
   );
 };
 

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Settings, ThemeType, VisibilitySettings, ThemeColors } from '../types';
 import DataSection from './DataSection';
+import AccountSection from './AccountSection';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -35,6 +36,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <h2 className="text-3xl font-black mb-8 tracking-tight">Settings</h2>
 
         <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+          <AccountSection />
+
           {/* Daily study */}
           <section className="space-y-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Daily Study</h3>
