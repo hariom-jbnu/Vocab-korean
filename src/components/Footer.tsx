@@ -2,13 +2,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ThemeColors } from '../types';
+import { contrastText } from '../lib/color';
 
 interface FooterProps {
   theme: ThemeColors;
 }
 
 const Footer: React.FC<FooterProps> = ({ theme }) => {
-  const isDarkBg = theme.background === '#0C7779' || theme.primary === '#30364F' || theme.primary === '#222222';
+  const isDarkBg = contrastText(theme.background) !== '#0F172A';
   const colorBase = isDarkBg ? 'text-white/60' : 'text-gray-500';
   const hoverBase = isDarkBg ? 'hover:text-white' : 'hover:text-black';
 
