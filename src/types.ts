@@ -42,4 +42,6 @@ export interface Settings {
   retention: number;
   /** Seed for this learner's shuffled new-word order. */
   seed: number;
+  /** Quiz checks the answer for you; flip lets you rate yourself. */
+  answerMode: 'quiz' | 'flip';
 }

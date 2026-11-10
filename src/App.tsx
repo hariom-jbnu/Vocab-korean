@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: Settings = {
   retention: DEFAULT_RETENTION,
   // Picked once and saved, so each learner keeps the same new-word order.
   seed: Math.floor(Math.random() * 2 ** 31),
+  answerMode: 'quiz',
 };
 
 const NAV = [

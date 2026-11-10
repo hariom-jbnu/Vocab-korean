@@ -38,6 +38,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <section className="space-y-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Daily Study</h3>
             <div>
+              <span className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Answer style</span>
+              <div className="flex gap-2">
+                {([
+                  ['quiz', 'bi-ui-checks-grid', 'Quiz', 'The app checks your answer'],
+                  ['flip', 'bi-hand-index-thumb', 'Flip', 'You rate yourself'],
+                ] as const).map(([mode, icon, label, hint]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setSettings(prev => ({ ...prev, answerMode: mode }))}
+                    className={`flex-1 py-3 px-2 rounded-2xl font-bold flex flex-col items-center gap-0.5 transition-all ${settings.answerMode === mode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    <span className="flex items-center gap-2 text-[10px] uppercase"><i className={`bi ${icon}`}></i>{label}</span>
+                    <span className="text-[10px] font-medium opacity-80">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
               <label htmlFor="new-per-day" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 New words per day ({settings.newPerDay})
               </label>

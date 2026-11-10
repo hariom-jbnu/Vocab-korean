@@ -110,14 +110,20 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const reveal = useCallback(() => setRevealed(true), []);
 
   const answer = useCallback(
-    async (grade: Grade) => {
+    async (grade: Grade, durationMs?: number) => {
       if (!currentId || busy.current) return;
       busy.current = true;
       try {
         const now = new Date();
         const previous = cards.current.get(currentId);
         const wasNew = !previous || previous.state === State.New;
-        const { card, record } = rate(scheduler, previous ?? newCard(currentId, now), grade, now, now.getTime() - shownAt);
+        const { card, record } = rate(
+          scheduler,
+          previous ?? newCard(currentId, now),
+          grade,
+          now,
+          durationMs ?? now.getTime() - shownAt
+        );
 
         let recordId: number | null = null;
         try {
@@ -220,6 +226,8 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   return {
     loading,
     current: currentId ? wordsById.get(currentId) : undefined,
+    /** Changes every time a card is shown, even when the same word returns. */
+    cardKey: shownAt,
     currentCard,
     isNew,
     revealed,

@@ -4,6 +4,7 @@ import type { Settings, ThemeColors, VisibilitySettings, VocabItem } from '../ty
 import { useReviewSession } from '../hooks/useReviewSession';
 import { formatInterval, GRADE_LABELS, GRADES, type Grade } from '../lib/srs';
 import { contrastText } from '../lib/color';
+import ChoiceQuiz from '../components/ChoiceQuiz';
 
 interface ReviewProps {
   vocab: VocabItem[];
@@ -28,6 +29,7 @@ const isTyping = (el: EventTarget | null) =>
 const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, speak, paused }) => {
   const session = useReviewSession(vocab, settings);
   const { current, revealed, reveal, answer, undo, canUndo } = session;
+  const quiz = settings.answerMode === 'quiz';
 
   // Speak the word when a new card appears.
   useEffect(() => {
@@ -45,6 +47,8 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
       if (e.ctrlKey || !current) return;
       if (e.key.toLowerCase() === 'r') {
         speak(current.ko);
+      } else if (quiz) {
+        // The quiz card handles its own keys.
       } else if (!revealed && (e.key === ' ' || e.key === 'Enter')) {
         e.preventDefault();
         reveal();
@@ -58,7 +62,7 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [paused, current, revealed, reveal, answer, undo, speak]);
+  }, [paused, quiz, current, revealed, reveal, answer, undo, speak]);
 
   if (session.loading) {
     return (
@@ -70,6 +74,13 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
   }
 
   const cardText = contrastText(settings.cardBg);
+  const badge = (
+    <span
+      className={`absolute top-6 left-7 text-[9px] font-black uppercase tracking-[0.3em] px-2.5 py-1 rounded-full ${session.isNew ? 'bg-emerald-500/15 text-emerald-600' : 'bg-sky-500/15 text-sky-600'}`}
+    >
+      {session.isNew ? 'New word' : 'Review'}
+    </span>
+  );
   const showEn = visibility.en || !visibility.hi;
   const showHi = visibility.hi || !visibility.en;
   const remaining = session.counts.due + session.counts.new;
@@ -113,7 +124,19 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
         </p>
       )}
 
-      {current ? (
+      {current && quiz ? (
+        <ChoiceQuiz
+          key={session.cardKey}
+          word={current}
+          pool={vocab}
+          visibility={visibility}
+          cardBg={settings.cardBg}
+          badge={badge}
+          speak={speak}
+          onAnswer={answer}
+          paused={paused}
+        />
+      ) : current ? (
         <>
           {/* Recall card */}
           <div
@@ -121,11 +144,7 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
             style={{ backgroundColor: settings.cardBg, color: cardText }}
             onClick={() => (revealed ? speak(current.ko) : reveal())}
           >
-            <span
-              className={`absolute top-6 left-7 text-[9px] font-black uppercase tracking-[0.3em] px-2.5 py-1 rounded-full ${session.isNew ? 'bg-emerald-500/15 text-emerald-600' : 'bg-sky-500/15 text-sky-600'}`}
-            >
-              {session.isNew ? 'New word' : 'Review'}
-            </span>
+            {badge}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -184,14 +203,18 @@ const Review: React.FC<ReviewProps> = ({ vocab, settings, visibility, theme, spe
             </button>
           )}
 
-          <p className="hidden md:flex flex-wrap justify-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-50">
-            <span>Space reveal / good</span>
-            <span>1-4 rate</span>
-            <span>R audio</span>
-            <span>U undo</span>
-          </p>
         </>
-      ) : (
+      ) : null}
+
+      {current && (
+        <p className="hidden md:flex flex-wrap justify-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-50">
+          {quiz ? <span>1-4 pick · Space continue</span> : <span>Space reveal / good · 1-4 rate</span>}
+          <span>R audio</span>
+          <span>U undo</span>
+        </p>
+      )}
+
+      {!current && (
         <DoneCard session={session} newPerDay={settings.newPerDay} />
       )}
     </div>
