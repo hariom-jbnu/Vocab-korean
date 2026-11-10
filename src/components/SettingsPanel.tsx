@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Settings, ThemeType, VisibilitySettings, ThemeColors } from '../types';
+import DataSection from './DataSection';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -217,6 +218,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <span className="text-sm font-black text-gray-700">Auto-speak</span>
             </label>
           </section>
+
+          <DataSection settings={settings} />
         </div>
 
         <button 

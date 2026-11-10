@@ -90,6 +90,21 @@ export async function clearProgress(): Promise<void> {
   notifyProgress();
 }
 
+/** Replace all progress with the given cards and review log (restoring a backup). */
+export async function replaceProgress(cards: readonly WordCard[], reviews: readonly ReviewRecord[]): Promise<void> {
+  const tx = (await db()).transaction(['cards', 'reviews'], 'readwrite');
+  const cardStore = tx.objectStore('cards');
+  const reviewStore = tx.objectStore('reviews');
+  await Promise.all([
+    cardStore.clear(),
+    reviewStore.clear(),
+    ...cards.map((c) => cardStore.put(c)),
+    ...reviews.map((r) => reviewStore.add(r)),
+    tx.done,
+  ]);
+  notifyProgress();
+}
+
 /** Close the connection (used by tests to start from a fresh database). */
 export async function closeDb(): Promise<void> {
   if (dbPromise) (await dbPromise).close();
