@@ -195,7 +195,7 @@ Accounts are optional. Without Supabase settings the app runs fully in the brows
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. Run [`supabase/migrations/20261110000000_progress_sync.sql`](supabase/migrations/20261110000000_progress_sync.sql) in the SQL editor, or `supabase db push` with the Supabase CLI.
+2. Run [`supabase/migrations/20261110000000_vocab_progress_sync.sql`](supabase/migrations/20261110000000_vocab_progress_sync.sql) in the SQL editor, or `supabase db push` with the Supabase CLI.
 3. In **Authentication > URL Configuration**, set the Site URL to your production URL and add redirect URLs for local development and previews, for example `http://localhost:3000/**` and `https://*-your-team.vercel.app/**`.
 4. In **Authentication > Emails**, add `{{ .Token }}` to the *Magic Link* and *Confirm signup* templates so emails include a 6-digit code. The code works inside the installed app, where a link would open the browser instead.
 5. Supabase's built-in email only reaches your own team's addresses. Before inviting others, add a custom SMTP provider in **Authentication > Emails > SMTP Settings**, or turn on Google sign-in.

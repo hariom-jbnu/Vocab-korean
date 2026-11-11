@@ -115,7 +115,7 @@ async function pullAll<T extends { synced_at?: string }>(
 
 async function pull(client: SupabaseClient, meta: SyncMeta, hooks: SyncHooks): Promise<{ pulled: number; remoteSettings: SettingsRow | null }> {
   const { data: settingsRow, error } = await client
-    .from('user_settings')
+    .from('vocab_user_settings')
     .select('settings, updated_at, progress_reset_at')
     .maybeSingle<SettingsRow>();
   if (error) throw error;
@@ -135,13 +135,13 @@ async function pull(client: SupabaseClient, meta: SyncMeta, hooks: SyncHooks): P
 
   const [cardRows, reviewRows] = await Promise.all([
     pullAll<CardRow>(
-      (since, after) => client.rpc('pull_cards', { since, after_word: after, max_rows: PAGE }),
+      (since, after) => client.rpc('vocab_pull_cards', { since, after_word: after, max_rows: PAGE }),
       before(meta.cardsCursor),
       '',
       (r) => r.word_id
     ),
     pullAll<ReviewRow>(
-      (since, after) => client.rpc('pull_reviews', { since, after_id: after, max_rows: PAGE }),
+      (since, after) => client.rpc('vocab_pull_reviews', { since, after_id: after, max_rows: PAGE }),
       before(meta.reviewsCursor),
       ZERO_UUID,
       (r) => r.id
@@ -166,7 +166,7 @@ async function push(client: SupabaseClient, userId: string, meta: SyncMeta, hook
 
   const deleted = await getDeletedReviewIds();
   for (const ids of chunk(deleted, UPLOAD_CHUNK)) {
-    const { error } = await client.from('review_logs').delete().eq('user_id', userId).in('id', ids);
+    const { error } = await client.from('vocab_review_logs').delete().eq('user_id', userId).in('id', ids);
     if (error) throw error;
     await clearDeletedReviewIds(ids);
     pushed += ids.length;
@@ -175,7 +175,7 @@ async function push(client: SupabaseClient, userId: string, meta: SyncMeta, hook
   const reviews = await getPendingReviews();
   for (const part of chunk(reviews, UPLOAD_CHUNK)) {
     const { error } = await client
-      .from('review_logs')
+      .from('vocab_review_logs')
       .upsert(part.map((r) => reviewToRow(r, userId)), { onConflict: 'user_id,id', ignoreDuplicates: true });
     if (error) throw error;
     await markReviewsSynced(part.map((r) => r.uid!));
@@ -184,7 +184,7 @@ async function push(client: SupabaseClient, userId: string, meta: SyncMeta, hook
 
   const cards = await getPendingCards();
   for (const part of chunk(cards, UPLOAD_CHUNK)) {
-    const { error } = await client.rpc('push_cards', { rows: part.map(cardToRow) });
+    const { error } = await client.rpc('vocab_push_cards', { rows: part.map(cardToRow) });
     if (error) throw error;
     await markCardsSynced(part);
     pushed += part.length;
@@ -197,7 +197,7 @@ async function push(client: SupabaseClient, userId: string, meta: SyncMeta, hook
       : remoteSettings === null || meta.settingsChangedAt > time(remoteSettings.updated_at);
   if (settingsDue) {
     const changedAt = meta.settingsChangedAt || Date.now();
-    const { error } = await client.rpc('push_settings', {
+    const { error } = await client.rpc('vocab_push_settings', {
       new_settings: syncedSettings(hooks.getSettings()),
       changed_at: new Date(changedAt).toISOString(),
     });
@@ -243,7 +243,7 @@ export async function syncProgress(
  * the server has done it; local progress is cleared by the caller.
  */
 export async function resetRemoteProgress(client: SupabaseClient, userId: string): Promise<void> {
-  const { data, error } = await client.rpc('reset_progress');
+  const { data, error } = await client.rpc('vocab_reset_progress');
   if (error) throw error;
   const meta = loadMeta();
   saveMeta({ ...meta, userId, cardsCursor: null, reviewsCursor: null, resetAt: data as string });

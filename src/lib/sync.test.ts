@@ -59,7 +59,7 @@ class FakeServer {
       from(table: string) {
         return {
           select: () => ({
-            maybeSingle: async () => ({ data: table === 'user_settings' ? server.settings.get(userId) ?? null : null, error: null }),
+            maybeSingle: async () => ({ data: table === 'vocab_user_settings' ? server.settings.get(userId) ?? null : null, error: null }),
           }),
           upsert: async (rows: ReviewRow[]) => {
             for (const r of rows) {
@@ -81,11 +81,11 @@ class FakeServer {
       async rpc(name: string, args: Record<string, unknown>) {
         const mine = <T extends { user_id: string }>(m: Map<string, T>) => [...m.values()].filter((r) => r.user_id === userId);
         switch (name) {
-          case 'pull_cards':
+          case 'vocab_pull_cards':
             return { data: page(mine(server.cards), (r) => r.word_id, args.since as string, args.after_word as string, args.max_rows as number), error: null };
-          case 'pull_reviews':
+          case 'vocab_pull_reviews':
             return { data: page(mine(server.reviews), (r) => r.id, args.since as string, args.after_id as string, args.max_rows as number), error: null };
-          case 'push_cards': {
+          case 'vocab_push_cards': {
             const at = server.now();
             for (const row of args.rows as CardRow[]) {
               const key = `${userId}|${row.word_id}`;
@@ -94,7 +94,7 @@ class FakeServer {
             }
             return { data: 0, error: null };
           }
-          case 'push_settings': {
+          case 'vocab_push_settings': {
             const existing = server.settings.get(userId);
             const changedAt = args.changed_at as string;
             if (!existing || ms(existing.updated_at) < ms(changedAt)) {
@@ -107,7 +107,7 @@ class FakeServer {
             }
             return { data: null, error: null };
           }
-          case 'reset_progress': {
+          case 'vocab_reset_progress': {
             const at = server.now();
             for (const [k, r] of server.cards) if (r.user_id === userId) server.cards.delete(k);
             for (const [k, r] of server.reviews) if (r.user_id === userId) server.reviews.delete(k);
@@ -235,7 +235,7 @@ describe('progress sync', () => {
 
     // An older copy uploaded later does not overwrite it.
     const stale = { ...(await getAllCards()).get('가방')!, reps: 0, updatedAt: 1, pending: 1 as const };
-    await server.client('u1').rpc('push_cards', { rows: [{ ...stale, word_id: '가방', updated_at: new Date(1).toISOString() }] });
+    await server.client('u1').rpc('vocab_push_cards', { rows: [{ ...stale, word_id: '가방', updated_at: new Date(1).toISOString() }] });
     expect(server.cards.get('u1|가방')?.reps).toBe(firstReps + 1);
   });
 
