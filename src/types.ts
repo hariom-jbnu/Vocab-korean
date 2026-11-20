@@ -1,10 +1,29 @@
 
+/** One example sentence with its Hindi translation. */
+import type { StudyPlan } from './lib/plan';
+
+export interface Example {
+  ko: string;
+  hi: string;
+}
+
 export interface VocabItem {
-  /** Stable id used to store progress (the Korean headword). */
+  /**
+   * Stable id used to store progress: the Korean headword, plus "#2" for a
+   * second word with the same spelling (눈 snow, 눈#2 eye).
+   */
   id: string;
   ko: string;
   hi: string;
   en: string;
+  /** Revised Romanization, as a reading aid. */
+  rom?: string;
+  /** Example sentences in Korean with Hindi translations. */
+  examples?: Example[];
+  /** Where the word comes from: the study images or the common-word list. */
+  source?: 'image' | 'common';
+  /** Topic of the study image the word came from, such as "Clothes, Fashion & Accessories". */
+  topic?: string;
 }
 
 export interface VisibilitySettings {
@@ -48,4 +67,6 @@ export interface Settings {
   answerMode: 'quiz' | 'flip';
   /** Include the typing round for well-known words (needs a Korean keyboard). */
   typeAnswers: boolean;
+  /** Active study plan (words, days, order, start day), or null for a fixed daily limit. */
+  plan: StudyPlan | null;
 }

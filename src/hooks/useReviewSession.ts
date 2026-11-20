@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { VocabItem } from '../types';
-import { getAllCards, getReviewsSince, saveAnswer, undoAnswer } from '../lib/db';
-import { buildDailyQueue, pickNext, seededShuffle } from '../lib/queue';
+import { getAllCards, getReviewsSince, PROGRESS_EVENT, progressSource, saveAnswer, undoAnswer } from '../lib/db';
+import { buildDailyQueue, countNewToday, pickNext, seededShuffle } from '../lib/queue';
+import { todaysNewTarget, type StudyPlan } from '../lib/plan';
 import { endOfStudyDay, startOfStudyDay } from '../lib/day';
 import { createScheduler, newCard, previewDue, rate, Rating, State, type Grade, type WordCard } from '../lib/srs';
 
@@ -25,6 +26,10 @@ interface Options {
   newPerDay: number;
   retention: number;
   seed: number;
+  /** Active study plan; it sets today's new words instead of newPerDay. */
+  plan?: StudyPlan | null;
+  /** The plan's words in learning order. */
+  planOrder?: readonly string[] | null;
 }
 
 const isLearning = (c: WordCard) => c.state === State.Learning || c.state === State.Relearning;
@@ -33,7 +38,7 @@ const isLearning = (c: WordCard) => c.state === State.Learning || c.state === St
  * Runs one study session: loads saved cards, builds today's queue, applies
  * answers through FSRS and saves each one before moving on.
  */
-export function useReviewSession(words: readonly VocabItem[], { newPerDay, retention, seed }: Options) {
+export function useReviewSession(words: readonly VocabItem[], { newPerDay, retention, seed, plan, planOrder }: Options) {
   const scheduler = useMemo(() => createScheduler(retention), [retention]);
   const wordIds = useMemo(() => words.map((w) => w.id), [words]);
   const wordsById = useMemo(() => new Map(words.map((w) => [w.id, w])), [words]);
@@ -49,7 +54,14 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const [stats, setStats] = useState<SessionStats>({ answered: 0, newLearned: 0, again: 0 });
   const [storageError, setStorageError] = useState(false);
   const [newDoneToday, setNewDoneToday] = useState(0);
+  const [newTarget, setNewTarget] = useState(newPerDay);
+  const [reloadKey, setReloadKey] = useState(0);
   const busy = useRef(false);
+  const order = plan && planOrder && planOrder.length > 0 ? planOrder : null;
+  const answeredRef = useRef(0);
+  answeredRef.current = stats.answered;
+  const currentRef = useRef<string | undefined>(undefined);
+  currentRef.current = currentId;
 
   const show = useCallback((id: string | undefined) => {
     setCurrentId(id);
@@ -73,7 +85,15 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
       if (cancelled) return;
 
       cards.current = saved;
-      const daily = buildDailyQueue(wordIds, saved, today, now, { newPerDay, seed });
+      let limit = newPerDay;
+      if (plan && order) {
+        const seen = order.filter((id) => {
+          const c = saved.get(id);
+          return c && c.state !== State.New;
+        }).length;
+        limit = todaysNewTarget(plan, order.length, seen, countNewToday(today, now), now);
+      }
+      const daily = buildDailyQueue(wordIds, saved, today, now, { newPerDay: limit, seed, order: order ?? undefined });
       const dayEnd = endOfStudyDay(now).getTime();
       const learningNow = new Map<string, Date>();
       const main: string[] = [];
@@ -85,6 +105,7 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
       main.push(...daily.newWords);
 
       setNewDoneToday(daily.newDoneToday);
+      setNewTarget(limit);
       setQueue(main);
       setLearning(learningNow);
       setUndoStack([]);
@@ -94,8 +115,28 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
     return () => {
       cancelled = true;
     };
-    // Rebuild only when the word list or the daily limit changes; the seed is fixed per learner.
-  }, [wordIds, newPerDay]);
+    // Rebuild only when the word list, the daily limit or the plan changes, or
+    // progress arrives from another device; the seed is fixed per learner.
+  }, [wordIds, newPerDay, order, plan?.days, plan?.startDay, reloadKey]);
+
+  // Progress synced from another device: rebuild today's queue if nothing was
+  // answered yet; mid-session, just use the newer cards for later answers.
+  useEffect(() => {
+    const onProgress = async (e: Event) => {
+      if (progressSource(e) !== 'remote') return;
+      if (answeredRef.current === 0) {
+        setReloadKey((k) => k + 1);
+        return;
+      }
+      try {
+        for (const [id, card] of await getAllCards()) if (id !== currentRef.current) cards.current.set(id, card);
+      } catch {
+        // Keep the cards already loaded.
+      }
+    };
+    window.addEventListener(PROGRESS_EVENT, onProgress);
+    return () => window.removeEventListener(PROGRESS_EVENT, onProgress);
+  }, []);
 
   const currentCard = currentId ? cards.current.get(currentId) : undefined;
   const isNew = !!currentId && (!currentCard || currentCard.state === State.New);
@@ -190,17 +231,19 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const learnMore = useCallback(
     (count: number) => {
       const inSession = new Set([...queue, ...learning.keys()]);
-      const unseen = wordIds.filter((id) => {
+      const isFresh = (id: string) => {
         const c = cards.current.get(id);
         return (!c || c.state === State.New) && !inSession.has(id);
-      });
-      const extra = seededShuffle(unseen, seed).slice(0, count);
+      };
+      // Work ahead in the plan's order; once the plan is done, any word.
+      const fromPlan = order ? order.filter(isFresh).slice(0, count) : [];
+      const extra = fromPlan.length > 0 ? fromPlan : seededShuffle(wordIds.filter(isFresh), seed).slice(0, count);
       if (extra.length === 0) return;
       const nextQueue = [...queue, ...extra];
       setQueue(nextQueue);
       show(pickNext(nextQueue, learning, new Date()));
     },
-    [queue, learning, wordIds, seed, show]
+    [queue, learning, wordIds, seed, show, order]
   );
 
   const counts = useMemo(() => {
@@ -240,6 +283,8 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
     counts,
     stats,
     newDoneToday,
+    /** New words planned for today (the plan's share, or the daily limit). */
+    newTarget,
     dueTomorrow,
     storageError,
   };

@@ -8,6 +8,11 @@ export interface QueueOptions {
   seed: number;
   /** Stop adding new words while more reviews than this are due. */
   pauseNewAbove?: number;
+  /**
+   * Fixed learning order from a study plan. When given, new words come from
+   * this list in order instead of the shuffled word list.
+   */
+  order?: readonly string[];
 }
 
 export interface DailyQueue {
@@ -31,30 +36,42 @@ export function buildDailyQueue(
   cards: ReadonlyMap<string, WordCard>,
   todaysReviews: readonly ReviewRecord[],
   now: Date,
-  { newPerDay, seed, pauseNewAbove = 100 }: QueueOptions
+  { newPerDay, seed, pauseNewAbove = 100, order }: QueueOptions
 ): DailyQueue {
   const dayEnd = endOfStudyDay(now).getTime();
+  // Saved progress can include words that are no longer in the list.
+  const known = new Set(wordIds);
 
   const reviews = [...cards.values()]
-    .filter((c) => c.state !== State.New && c.due.getTime() < dayEnd)
+    .filter((c) => known.has(c.id) && c.state !== State.New && c.due.getTime() < dayEnd)
     .sort((a, b) => a.due.getTime() - b.due.getTime())
     .map((c) => c.id);
 
   const dayStart = startOfStudyDay(now).getTime();
   const today = todaysReviews.filter((r) => r.review.getTime() >= dayStart);
-  const newDoneToday = new Set(today.filter((r) => r.state === State.New).map((r) => r.wordId)).size;
+  const newDoneToday = countNewToday(todaysReviews, now);
 
   let newWords: string[] = [];
   const allowance = Math.max(0, Math.floor(newPerDay) - newDoneToday);
   if (allowance > 0 && reviews.length <= pauseNewAbove) {
-    const unseen = wordIds.filter((id) => {
+    const isUnseen = (id: string) => {
       const card = cards.get(id);
       return !card || card.state === State.New;
-    });
-    newWords = seededShuffle(unseen, seed).slice(0, allowance);
+    };
+    newWords = order
+      ? order.filter((id) => known.has(id) && isUnseen(id)).slice(0, allowance)
+      : seededShuffle(wordIds.filter(isUnseen), seed).slice(0, allowance);
   }
 
   return { reviews, newWords, newDoneToday, answeredToday: today.length };
+}
+
+/** Distinct words answered for the first time during the current study day. */
+export function countNewToday(todaysReviews: readonly ReviewRecord[], now: Date): number {
+  const dayStart = startOfStudyDay(now).getTime();
+  return new Set(
+    todaysReviews.filter((r) => r.review.getTime() >= dayStart && r.state === State.New).map((r) => r.wordId)
+  ).size;
 }
 
 /**

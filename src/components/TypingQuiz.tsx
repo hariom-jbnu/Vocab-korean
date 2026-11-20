@@ -4,6 +4,8 @@ import { gradeTyped, meaningLines } from '../lib/quiz';
 import { checkTyped, type TypedCheck } from '../lib/hangul';
 import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
+import Examples from './Examples';
+import { useShortcuts } from '../hooks/useShortcuts';
 
 interface TypingQuizProps {
   word: VocabItem;
@@ -48,16 +50,18 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
     onAnswer(gradeTyped(result, answeredAfter.current), answeredAfter.current);
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (paused || !result || e.target === inputRef.current) return;
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        next();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+  // The word's sound would give the answer away, so it plays only after checking.
+  useShortcuts((s) => {
+    if (paused || !result) return false;
+    if (s.type === 'primary') {
+      next();
+      return true;
+    }
+    if (s.type === 'speak') {
+      speak(word.ko);
+      return true;
+    }
+    return false;
   });
 
   const lines = meaningLines(word, visibility);
@@ -99,6 +103,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
               You typed <span lang="ko" className="font-black">{typed}</span>
             </p>
           )}
+          <Examples word={word} speak={speak} className="animate-fadeIn" />
           <button
             onClick={next}
             className={`w-full py-4 rounded-2xl text-white font-black tracking-widest uppercase shadow-xl transition-all animate-fadeIn ${result.correct ? 'bg-gray-900 hover:bg-black' : result.nearMiss ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-700 hover:bg-rose-800'}`}
@@ -123,6 +128,10 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
             onKeyDown={(e) => {
               // Korean keyboards compose syllables; wait until the block is finished.
               if (e.key === 'Enter' && e.nativeEvent.isComposing) e.preventDefault();
+              if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                check(true);
+              }
             }}
             autoComplete="off"
             autoCorrect="off"
@@ -135,6 +144,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
           <div className="flex gap-2">
             <button type="submit" className="flex-1 sm:flex-none px-6 py-4 rounded-2xl bg-gray-900 text-white font-black text-xs tracking-widest uppercase hover:bg-black">
               Check
+              <kbd className="hidden md:inline ml-2 text-[9px] bg-white/15 px-1.5 py-0.5 rounded">Enter</kbd>
             </button>
             <button
               type="button"
@@ -142,6 +152,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
               className="flex-1 sm:flex-none px-4 py-4 rounded-2xl bg-white/80 text-gray-700 font-black text-xs tracking-widest uppercase hover:bg-white border border-black/5"
             >
               I don't know
+              <kbd className="hidden md:inline ml-2 text-[9px] bg-black/5 px-1.5 py-0.5 rounded">Esc</kbd>
             </button>
           </div>
         </form>

@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Settings, ThemeType, VisibilitySettings, ThemeColors } from '../types';
 import DataSection from './DataSection';
+import AccountSection from './AccountSection';
 
 interface SettingsPanelProps {
   settings: Settings;
@@ -11,6 +12,8 @@ interface SettingsPanelProps {
   voices: SpeechSynthesisVoice[];
   theme: ThemeColors;
   onClose: () => void;
+  /** New words a day set by the study plan, when one is active. */
+  planPerDay?: number | null;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ 
@@ -20,13 +23,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setVisibility, 
   voices, 
   theme,
-  onClose
+  onClose,
+  planPerDay,
 }) => {
+  // Esc closes settings, unless it is ending a Korean syllable being typed.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 overflow-hidden relative border border-black/5" style={{ color: '#111827' }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 overflow-hidden relative border border-black/5"
+        style={{ color: '#111827' }}
+      >
         <button 
           onClick={onClose}
+          title="Close (Esc)"
+          aria-label="Close settings"
           className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <i className="bi bi-x-lg"></i>
@@ -35,6 +56,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <h2 className="text-3xl font-black mb-8 tracking-tight">Settings</h2>
 
         <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+          <AccountSection />
+
           {/* Daily study */}
           <section className="space-y-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Daily Study</h3>
@@ -70,6 +93,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
               </label>
             )}
+            {planPerDay ? (
+              <div>
+                <p className="block text-[10px] font-bold text-gray-500 uppercase mb-1">New words per day</p>
+                <p className="text-sm text-gray-700">
+                  Your plan sets this: about {planPerDay} a day.{' '}
+                  <a href="#/plan" onClick={onClose} className="font-bold text-indigo-700 underline">Change the plan</a>
+                </p>
+              </div>
+            ) : (
             <div>
               <label htmlFor="new-per-day" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 New words per day ({settings.newPerDay})
@@ -83,6 +115,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               />
               <p className="text-[11px] text-gray-400 mt-1">Each new word brings a few reviews a day for the next week, so start small.</p>
             </div>
+            )}
             <div>
               <label htmlFor="daily-goal" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 Daily goal ({settings.dailyGoal} answers)

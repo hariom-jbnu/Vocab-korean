@@ -8,7 +8,7 @@ import { ThemeType, type Settings } from '../types';
 const now = new Date('2026-11-10T10:00:00Z');
 const settings: Settings = {
   voiceName: '', rate: 0.8, pitch: 1, autoSpeak: false, theme: ThemeType.NAVY, isRandom: false, cardBg: '#FFFFFF',
-  newPerDay: 10, dailyGoal: 20, retention: 0.9, seed: 1, answerMode: 'quiz', typeAnswers: true,
+  newPerDay: 10, dailyGoal: 20, retention: 0.9, seed: 1, answerMode: 'quiz', typeAnswers: true, plan: null,
 };
 
 afterEach(async () => {

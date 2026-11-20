@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "bootstrap-icons": "^1.13.1",
     "idb": "^8.0.3",
     "react": "^19.2.4",
