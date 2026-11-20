@@ -6,9 +6,11 @@ import { useReviewSession } from '../hooks/useReviewSession';
 import { formatInterval, GRADE_LABELS, GRADES, type Grade } from '../lib/srs';
 import { contrastText } from '../lib/color';
 import ChoiceQuiz from '../components/ChoiceQuiz';
+import Examples from '../components/Examples';
 import TypingQuiz from '../components/TypingQuiz';
 import { chooseExercise } from '../lib/quiz';
 import { stageOf, STAGE_INFO } from '../lib/stats';
+import { dayNumber, type StudyPlan } from '../lib/plan';
 
 interface ReviewProps {
   daily: DailyProgress | null;
@@ -22,6 +24,9 @@ interface ReviewProps {
   canListen: boolean;
   /** Keyboard shortcuts pause while a dialog is open. */
   paused: boolean;
+  plan: StudyPlan | null;
+  /** The plan's words in learning order. */
+  planOrder: string[] | null;
 }
 
 const GRADE_STYLES: Record<Grade, string> = {
@@ -34,8 +39,9 @@ const GRADE_STYLES: Record<Grade, string> = {
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
-const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, visibility, theme, speak, canListen, paused }) => {
-  const session = useReviewSession(vocab, settings);
+const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, visibility, theme, speak, canListen, paused, plan, planOrder }) => {
+  const session = useReviewSession(vocab, { ...settings, plan, planOrder });
+  const planDay = plan ? dayNumber(plan.startDay, new Date()) : 0;
   const { current, revealed, reveal, answer, undo, canUndo } = session;
   const quiz = settings.answerMode === 'quiz';
   const exercise =
@@ -99,9 +105,29 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
 
   return (
     <div className="w-full max-w-2xl flex flex-col items-center gap-5 py-2 animate-fadeIn">
+      {!plan && (
+        <Link
+          to="/plan"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-all"
+        >
+          <i className="bi bi-calendar2-check-fill text-xl"></i>
+          <span className="flex-1 text-sm font-bold leading-snug">
+            Set your goal, like 2,000 words in 30 days, and get a Day 1 to Day 30 plan.
+          </span>
+          <i className="bi bi-arrow-right-short text-2xl"></i>
+        </Link>
+      )}
+
       {/* Today's counts */}
       <div className="w-full flex items-center justify-between gap-3 bg-white/40 px-4 py-3 rounded-2xl backdrop-blur-xl shadow-lg border border-white/40 text-gray-900">
         <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
+          {plan && planDay >= 1 && (
+            <Link to="/plan" title="Your study plan" className="flex items-center gap-1.5 hover:text-indigo-700">
+              <i className="bi bi-calendar2-check text-indigo-600 text-sm"></i>
+              Day {planDay}
+              <span className="hidden sm:inline">/{plan.days}</span>
+            </Link>
+          )}
           <span title="Words due for review" className="flex items-center gap-1.5">
             <i className="bi bi-arrow-repeat text-sky-600 text-sm"></i>
             {session.counts.due} due
@@ -202,6 +228,8 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
             )}
           </div>
 
+          {revealed && <Examples word={current} speak={speak} className="animate-fadeIn" />}
+
           {/* Answer controls */}
           {revealed && session.previews ? (
             <div className="w-full grid grid-cols-4 gap-2 md:gap-3">
@@ -245,7 +273,7 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
       )}
 
       {!current && (
-        <DoneCard session={session} newPerDay={settings.newPerDay} streak={daily?.streak.current ?? 0} />
+        <DoneCard session={session} newPerDay={session.newTarget} streak={daily?.streak.current ?? 0} />
       )}
     </div>
   );

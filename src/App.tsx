@@ -3,17 +3,18 @@ import { HashRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
 import Review from './pages/Review';
 import Browse from './pages/Browse';
 import Stats from './pages/Stats';
+import Plan from './pages/Plan';
 import Contact from './pages/Contact';
 import Footer from './components/Footer';
 import SettingsPanel from './components/SettingsPanel';
 import { ThemeType, Settings, VisibilitySettings } from './types';
 import { THEMES, LOGO_PATH } from './constants';
-import { parseWords } from './lib/words';
 import { DEFAULT_RETENTION } from './lib/srs';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useSpeech } from './hooks/useSpeech';
 import { useDailyProgress, type DailyProgress } from './hooks/useDailyProgress';
-import vocabCsv from '../data/ko_hi_en_vocab.csv?raw';
+import { useVocab } from './hooks/useVocab';
+import { planWordIds, type StudyPlan } from './lib/plan';
 
 const DEFAULT_SETTINGS: Settings = {
   voiceName: '',
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 const NAV = [
   { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review' },
+  { to: '/plan', icon: 'bi-calendar2-check-fill', label: 'Plan' },
   { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats' },
   { to: '/browse', icon: 'bi-card-text', label: 'Browse' },
   { to: '/contact', icon: 'bi-person-lines-fill', label: 'Contact' },
@@ -62,13 +64,18 @@ const StreakBadge: React.FC<{ daily: DailyProgress; goal: number }> = ({ daily, 
 };
 
 const App: React.FC = () => {
-  const vocab = useMemo(() => parseWords(vocabCsv), []);
+  const { words: vocab, failed: vocabFailed } = useVocab();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = usePersistentState<Settings>('settings', DEFAULT_SETTINGS);
   const [visibility, setVisibility] = usePersistentState<VisibilitySettings>('visibility', { ko: true, hi: true, en: true });
   const { voices, speak, supported, hasKoreanVoice } = useSpeech(settings);
   const daily = useDailyProgress();
+  const [plan, setPlan] = usePersistentState<StudyPlan | null>('plan', null);
+  const planOrder = useMemo(
+    () => (plan && vocab.length > 0 ? planWordIds(vocab, plan.totalWords, plan.order, settings.seed) : null),
+    [vocab, plan?.totalWords, plan?.order, settings.seed]
+  );
 
   const currentTheme = THEMES[settings.theme] ?? THEMES[ThemeType.NAVY];
   const openSettings = () => setIsSettingsOpen(true);
@@ -111,6 +118,11 @@ const App: React.FC = () => {
         )}
 
         <main className={`flex-grow flex flex-col items-center justify-center w-full mx-auto ${isFullScreen ? 'p-0 h-screen' : 'p-4 md:p-8 max-w-6xl'}`}>
+          {vocabFailed && (
+            <p className="mb-4 text-sm font-bold bg-rose-100 text-rose-900 border border-rose-200 rounded-xl px-4 py-2">
+              The word list did not load. Check your connection and reload the page.
+            </p>
+          )}
           <Routes>
             <Route
               path="/"
@@ -125,8 +137,14 @@ const App: React.FC = () => {
                   speak={speak}
                   canListen={supported && hasKoreanVoice}
                   paused={isSettingsOpen}
+                  plan={plan}
+                  planOrder={planOrder}
                 />
               }
+            />
+            <Route
+              path="/plan"
+              element={<Plan vocab={vocab} plan={plan} setPlan={setPlan} planOrder={planOrder} seed={settings.seed} speak={speak} />}
             />
             <Route
               path="/browse"
@@ -159,6 +177,7 @@ const App: React.FC = () => {
             voices={voices}
             theme={currentTheme}
             onClose={() => setIsSettingsOpen(false)}
+            planPerDay={plan && planOrder ? Math.ceil(planOrder.length / Math.max(1, plan.days)) : null}
           />
         )}
       </div>

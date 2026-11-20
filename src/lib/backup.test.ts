@@ -49,3 +49,12 @@ describe('backup', () => {
     expect(backupFileName(now)).toBe('vocab-korean-backup-2026-11-10.json');
   });
 });
+
+describe('backup with a study plan', () => {
+  it('keeps the plan through a round trip', () => {
+    const plan = { totalWords: 2000, days: 30, order: 'mixed' as const, startDay: '2026-11-20' };
+    const parsed = parseBackup(JSON.stringify(createBackup([], [], {} as never, plan)));
+    expect(parsed.plan).toEqual(plan);
+    expect(parseBackup(JSON.stringify(createBackup([], [], {} as never))).plan).toBeUndefined();
+  });
+});

@@ -1,5 +1,6 @@
 import type { Settings } from '../types';
 import type { ReviewRecord, WordCard } from './srs';
+import type { StudyPlan } from './plan';
 
 /**
  * Progress backups: a JSON file holding settings, every card's FSRS state
@@ -14,16 +15,24 @@ export interface Backup {
   version: number;
   exportedAt: string;
   settings?: Partial<Settings>;
+  /** The study plan, if one was active. */
+  plan?: StudyPlan | null;
   cards: WordCard[];
   reviews: ReviewRecord[];
 }
 
-export function createBackup(cards: Iterable<WordCard>, reviews: readonly ReviewRecord[], settings: Settings): Backup {
+export function createBackup(
+  cards: Iterable<WordCard>,
+  reviews: readonly ReviewRecord[],
+  settings: Settings,
+  plan: StudyPlan | null = null
+): Backup {
   return {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     settings,
+    plan,
     cards: [...cards],
     reviews: reviews.map(({ id: _id, ...r }) => r),
   };
@@ -40,6 +49,13 @@ const toDate = (v: unknown, field: string): Date => {
 };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+const isPlan = (v: unknown): v is StudyPlan =>
+  isObj(v) &&
+  typeof v.totalWords === 'number' &&
+  typeof v.days === 'number' &&
+  typeof v.startDay === 'string' &&
+  ['mixed', 'images', 'common'].includes(v.order as string);
 
 /** Read and check a backup file, turning date strings back into dates. */
 export function parseBackup(text: string): Backup {
@@ -76,6 +92,7 @@ export function parseBackup(text: string): Backup {
     version: raw.version,
     exportedAt: String(raw.exportedAt ?? ''),
     settings: isObj(raw.settings) ? (raw.settings as Partial<Settings>) : undefined,
+    plan: isPlan(raw.plan) ? raw.plan : undefined,
     cards,
     reviews,
   };

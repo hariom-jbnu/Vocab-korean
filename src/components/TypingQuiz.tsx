@@ -4,6 +4,7 @@ import { gradeTyped, meaningLines } from '../lib/quiz';
 import { checkTyped, type TypedCheck } from '../lib/hangul';
 import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
+import Examples from './Examples';
 
 interface TypingQuizProps {
   word: VocabItem;
@@ -99,6 +100,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
               You typed <span lang="ko" className="font-black">{typed}</span>
             </p>
           )}
+          <Examples word={word} speak={speak} className="animate-fadeIn" />
           <button
             onClick={next}
             className={`w-full py-4 rounded-2xl text-white font-black tracking-widest uppercase shadow-xl transition-all animate-fadeIn ${result.correct ? 'bg-gray-900 hover:bg-black' : result.nearMiss ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-700 hover:bg-rose-800'}`}

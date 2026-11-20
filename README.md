@@ -14,9 +14,10 @@ Learn Korean vocabulary with active recall and spaced repetition, with Hindi and
 
 ## Overview
 
-Vocab Korean helps you remember Korean words, not just read them. Each word is shown in Korean first and you answer a short question about it: pick the meaning, pick it by ear, or type the word in Hangul. The app grades the answer itself, and a spaced repetition scheduler (FSRS) brings every word back just before you would forget it.
+Vocab Korean helps you remember Korean words, not just read them. Set a goal such as **2,000 words in 30 days** and the planner lays out Day 1 to Day 30: new words each day plus the reviews that are due. Every word comes with two Korean example sentences and their Hindi translation. Each word is shown in Korean first and you answer a short question about it: pick the meaning, pick it by ear, or type the word in Hangul. The app grades the answer itself, and a spaced repetition scheduler (FSRS) brings every word back just before you would forget it.
 
 The platform focuses on:
+- A day-by-day plan toward a word goal you choose
 - Active recall instead of re-reading
 - Spaced repetition with the FSRS algorithm
 - Hindi and English meanings for every word
@@ -32,7 +33,9 @@ Built for:
 
 ## Features
 
-- **Daily review**: due words first, then a few new words a day in shuffled order
+- **Study plan**: choose how many words (up to 2,000) and in how many days; the app builds a Day 1 … Day N schedule with new words, estimated reviews and minutes per day, warns when a plan is too heavy, and re-balances if you miss a day
+- **2,000 words with examples**: about 1,000 words from the study images plus 1,000 common everyday words, each with romanization and two Korean example sentences with Hindi translations (tap to hear them)
+- **Daily review**: due words first, then today's new words from the plan
 - **Quiz rounds that get harder as you learn**: multiple choice for new words, a listening round once a word sticks, and typing in Hangul for words you know well
 - **Automatic grading** from correctness and answer time, so there is nothing to self-rate
 - **Hangul feedback**: typed answers are checked letter by letter and a one-letter slip counts as a near miss
@@ -44,7 +47,7 @@ Built for:
 - **Backup and restore** your progress as a file, or reset it
 - **Works offline** and can be installed to the home screen
 - **Undo** the last answer
-- **Browse mode**: flip through all 1,670 words in order or at random
+- **Browse mode**: flip through all 2,000 words, with their example sentences, in order or at random
 - **Text-to-speech** in Korean with voice, speed and pitch controls
 - **Themes and card colors**, remembered between visits
 
@@ -62,13 +65,15 @@ Built for:
 
 ## How it works
 
-1. Every word starts as **new**. You see up to *N* new words a day (10 by default).
+1. Every word starts as **new**. With a plan, the words still to learn are shared out over the days left; without one, you see up to *N* new words a day (10 by default).
 2. After each answer, FSRS updates the word's **stability** and **difficulty** and picks the next review date so that your chance of remembering it is about your target recall (90% by default).
 3. The question gets harder as a word gets more stable: multiple choice at first, listening from about 3 days, typing from about 3 weeks.
 4. Answers are graded automatically. A wrong answer is "Again", a slow or nearly right one is "Hard", a quick typed answer is "Easy".
 5. Words you miss come back within the same session; words you know well come back days or months later.
 6. Every answer is kept in an append-only log, so the schedule can be re-tuned later without losing progress.
 7. A study day rolls over at 4 a.m., so a late-night session still counts for that day.
+
+The research behind these choices (retrieval practice, spacing, successive relearning, avoiding semantic clusters, example sentences) is summarized in [docs/learning-research.md](docs/learning-research.md) and on the app's Plan page.
 
 ---
 
@@ -107,14 +112,15 @@ Built for:
 ```bash
 Vocab-korean/
 ├── data/
-│   ├── ko_hi_en_vocab.csv   # Word list: Korean, Hindi, English
+│   ├── plan/                # The 2,000 words: day-NN from the study images, fill-NN common words
+│   ├── ko_hi_en_vocab.csv   # TOPIK I word list the common words were taken from
 │   └── asset/               # README screenshots
 ├── public/                  # Manifest and app icons
 ├── src/
 │   ├── components/          # Quiz rounds, settings panel, footer
 │   ├── hooks/               # Review session, daily progress, speech
 │   ├── lib/                 # FSRS wrapper, queue, quiz grading, Hangul, stats
-│   ├── pages/               # Review, Stats, Browse, Contact
+│   ├── pages/               # Review, Plan, Stats, Browse, Contact
 │   ├── sw.js                # Service worker template
 │   ├── App.tsx
 │   └── main.tsx

@@ -11,6 +11,8 @@ interface SettingsPanelProps {
   voices: SpeechSynthesisVoice[];
   theme: ThemeColors;
   onClose: () => void;
+  /** New words a day set by the study plan, when one is active. */
+  planPerDay?: number | null;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ 
@@ -20,7 +22,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   setVisibility, 
   voices, 
   theme,
-  onClose
+  onClose,
+  planPerDay,
 }) => {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
@@ -70,6 +73,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
               </label>
             )}
+            {planPerDay ? (
+              <div>
+                <p className="block text-[10px] font-bold text-gray-500 uppercase mb-1">New words per day</p>
+                <p className="text-sm text-gray-700">
+                  Your plan sets this: about {planPerDay} a day.{' '}
+                  <a href="#/plan" onClick={onClose} className="font-bold text-indigo-700 underline">Change the plan</a>
+                </p>
+              </div>
+            ) : (
             <div>
               <label htmlFor="new-per-day" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 New words per day ({settings.newPerDay})
@@ -83,6 +95,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               />
               <p className="text-[11px] text-gray-400 mt-1">Each new word brings a few reviews a day for the next week, so start small.</p>
             </div>
+            )}
             <div>
               <label htmlFor="daily-goal" className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                 Daily goal ({settings.dailyGoal} answers)

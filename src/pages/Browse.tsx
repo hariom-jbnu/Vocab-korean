@@ -4,6 +4,7 @@ import { VocabItem, Settings, VisibilitySettings } from '../types';
 import { CARD_PALETTE } from '../constants';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { contrastText } from '../lib/color';
+import Examples from '../components/Examples';
 
 interface BrowseProps {
   vocab: VocabItem[];
@@ -205,6 +206,8 @@ const Browse: React.FC<BrowseProps> = ({ vocab, settings, setSettings, visibilit
           </>
         )}
       </div>
+
+      {!isFullScreen && <Examples word={currentWord} speak={speak} className="max-w-2xl" />}
 
       {!isFullScreen && (
         <div className="flex flex-wrap justify-center items-center gap-4 px-6 py-2 bg-black/5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">

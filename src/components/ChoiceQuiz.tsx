@@ -3,6 +3,7 @@ import type { VisibilitySettings, VocabItem } from '../types';
 import { buildChoices, gradeChoice, meaningLines } from '../lib/quiz';
 import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
+import Examples from './Examples';
 
 interface ChoiceQuizProps {
   /** choice: read the word; listen: hear it with the word hidden. */
@@ -137,6 +138,8 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, c
           );
         })}
       </div>
+
+      {done && <Examples word={word} speak={speak} className="animate-fadeIn" />}
 
       {done && (
         <button

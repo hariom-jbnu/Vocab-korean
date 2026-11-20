@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import type { Settings } from '../types';
 import { clearProgress, getAllCards, getAllReviews, replaceProgress } from '../lib/db';
 import { backupFileName, createBackup, parseBackup } from '../lib/backup';
-import { saveJson } from '../lib/storage';
+import { loadJson, saveJson } from '../lib/storage';
+import type { StudyPlan } from '../lib/plan';
 
 /** Download, restore or reset learning progress. */
 const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
@@ -12,7 +13,7 @@ const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
   const download = async () => {
     try {
       const [cards, reviews] = await Promise.all([getAllCards(), getAllReviews()]);
-      const blob = new Blob([JSON.stringify(createBackup(cards.values(), reviews, settings))], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(createBackup(cards.values(), reviews, settings, loadJson<StudyPlan | null>('plan', null)))], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -34,6 +35,7 @@ const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
       if (!ok) return;
       await replaceProgress(backup.cards, backup.reviews);
       if (backup.settings) saveJson('settings', { ...settings, ...backup.settings });
+      if (backup.plan) saveJson('plan', backup.plan);
       window.location.reload();
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Could not restore this file.', error: true });

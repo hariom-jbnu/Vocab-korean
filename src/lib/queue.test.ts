@@ -76,3 +76,17 @@ describe('seededShuffle', () => {
     expect(out).not.toEqual(ids);
   });
 });
+
+describe('buildDailyQueue with a plan order', () => {
+  it('takes new words from the plan order, skipping words already started', () => {
+    const cards = new Map<string, WordCard>([['다', reviewCard('다', new Date(2026, 10, 20))]]);
+    const q = buildDailyQueue(ids, cards, [], now, { newPerDay: 3, seed: 1, order: ['마', '다', '가', '바', '사'] });
+    expect(q.newWords).toEqual(['마', '가', '바']);
+  });
+
+  it('ignores saved cards for words that are no longer in the list', () => {
+    const cards = new Map<string, WordCard>([['없음', reviewCard('없음', new Date(2026, 10, 9))]]);
+    const q = buildDailyQueue(ids, cards, [], now, { newPerDay: 0, seed: 1 });
+    expect(q.reviews).toEqual([]);
+  });
+});
