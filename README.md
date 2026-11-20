@@ -65,17 +65,22 @@ Everything works from the keyboard: left hand on `A S D F` to answer, right hand
 | `K` / `L` | Play example sentence 1 / 2 |
 | `Esc` | Typing round: "I don't know"; closes settings and the shortcut list |
 | `U` / `Ctrl+Z` | Undo the last answer |
-| `←` `→` | Previous / next word in Browse (`Space` also goes next) |
-| `F` | Full screen in Browse |
 | `H` `P` `G` `B` | Go to Review, Plan, Stats, Browse |
 | `,` / `?` | Open settings / the shortcut list |
 
----|---|
-| `1` `2` `3` `4` | Pick a choice in the quiz, or Again / Hard / Good / Easy on flip cards |
-| `Space` / `Enter` | Continue after a quiz answer; on flip cards, show answer then rate Good |
-| `R` | Play audio |
-| `U` | Undo last answer |
-| `←` `→` | Previous / next card in Browse |
+In **Browse**, and the same in full screen:
+
+| Key | Action |
+|---|---|
+| `←` `→` | Previous / next word (`Space` also goes next) |
+| `Home` / `End` | First / last word |
+| `N` | Go to a word number (type it, then `Enter`) |
+| `J` / `K` / `L` | Play the word / sentence 1 / sentence 2 |
+| `1` `2` `3` `4` | Show or hide Korean, English, Hindi, the sentences |
+| `M` | Shuffle (random order) on or off |
+| `V` | Auto-play each word on or off |
+| `C` | Next card color |
+| `F` | Full screen on or off (`Esc` also leaves) |
 
 ---
 

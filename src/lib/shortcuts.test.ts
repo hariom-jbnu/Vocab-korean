@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFullscreenKey, readShortcut, SHORTCUT_GROUPS } from './shortcuts';
+import { isFullscreenKey, numberKey, readShortcut, SHORTCUT_GROUPS } from './shortcuts';
 
 const key = (code: string, extra: Partial<KeyboardEvent> & { isComposing?: boolean } = {}) => ({
   code,
@@ -47,8 +47,19 @@ describe('readShortcut', () => {
     expect(readShortcut(key('Slash', { key: '?', shiftKey: true }))).toEqual({ type: 'help' });
   });
 
+  it('has a key for every Browse button', () => {
+    expect(readShortcut(key('Home'))).toEqual({ type: 'first' });
+    expect(readShortcut(key('End'))).toEqual({ type: 'last' });
+    expect(readShortcut(key('KeyN'))).toEqual({ type: 'jump' });
+    expect(readShortcut(key('KeyM'))).toEqual({ type: 'shuffle' });
+    expect(readShortcut(key('KeyV'))).toEqual({ type: 'autoplay' });
+    expect(readShortcut(key('KeyC'))).toEqual({ type: 'color' });
+  });
+
   it('leaves browser and system shortcuts alone, and waits for Korean typing to finish', () => {
     expect(readShortcut(key('KeyR', { ctrlKey: true }))).toBeNull();
+    expect(readShortcut(key('KeyC', { ctrlKey: true }))).toBeNull(); // copy
+    expect(readShortcut(key('KeyV', { ctrlKey: true }))).toBeNull(); // paste
     expect(readShortcut(key('KeyJ', { metaKey: true }))).toBeNull();
     expect(readShortcut(key('KeyA', { altKey: true }))).toBeNull();
     expect(readShortcut(key('KeyA', { shiftKey: true }))).toBeNull();
@@ -57,7 +68,10 @@ describe('readShortcut', () => {
   });
 
   it('never gives one key two meanings', () => {
-    const codes = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyR', 'KeyK', 'KeyL', 'KeyU', 'KeyH', 'KeyP', 'KeyG', 'KeyB', 'Comma', 'Space'];
+    const codes = [
+      'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyR', 'KeyK', 'KeyL', 'KeyU', 'KeyH', 'KeyP', 'KeyG', 'KeyB', 'Comma', 'Space',
+      'KeyN', 'KeyM', 'KeyV', 'KeyC', 'Home', 'End',
+    ];
     const types = codes.map((c) => JSON.stringify(readShortcut(key(c))));
     expect(new Set(types).size).toBe(codes.length - 1); // J and R both play the word
   });
@@ -70,10 +84,24 @@ describe('isFullscreenKey', () => {
   });
 });
 
+describe('numberKey', () => {
+  it('is the number row or keypad 1 to 4, not A S D F', () => {
+    expect(numberKey(key('Digit1'))).toBe(1);
+    expect(numberKey(key('Numpad4'))).toBe(4);
+    expect(numberKey(key('Digit5'))).toBeNull();
+    expect(numberKey(key('KeyA'))).toBeNull();
+  });
+});
+
 describe('SHORTCUT_GROUPS', () => {
   it('lists the listening keys', () => {
     const labels = SHORTCUT_GROUPS.flatMap((g) => g.items.map((i) => i.keys.join(' ')));
     expect(labels).toContain('K');
     expect(labels).toContain('L');
+  });
+
+  it('lists every Browse key', () => {
+    const browse = SHORTCUT_GROUPS.find((g) => g.title === 'Browse')!.items.flatMap((i) => i.keys);
+    for (const k of ['←', '→', 'Home', 'End', 'N', '1', '4', 'M', 'V', 'C', 'F']) expect(browse).toContain(k);
   });
 });

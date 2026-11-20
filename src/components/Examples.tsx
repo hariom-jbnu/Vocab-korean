@@ -9,13 +9,27 @@ const KEYS = ['K', 'L'];
 interface ExamplesProps {
   word: VocabItem;
   speak: (text: string) => void;
-  /** Smaller text for tight spaces. */
-  compact?: boolean;
+  /** Text size: small for tight spaces, large for the full-screen card. */
+  size?: 'compact' | 'normal' | 'large';
+  /** Keep K and L working but show nothing (the learner hid the sentences). */
+  hidden?: boolean;
   className?: string;
 }
 
+const SIZES = {
+  compact: { box: 'p-4', button: 'w-8 h-8', ko: 'text-base', hi: 'text-sm' },
+  normal: { box: 'p-5 md:p-6', button: 'w-8 h-8', ko: 'text-lg md:text-xl', hi: 'text-base' },
+  // Grows with the screen height, so two sentences fit under a big word.
+  large: {
+    box: 'p-5 md:p-7',
+    button: 'w-10 h-10',
+    ko: 'text-[length:clamp(1.125rem,3.4vh,2.25rem)]',
+    hi: 'text-[length:clamp(0.95rem,2.5vh,1.6rem)]',
+  },
+};
+
 /** The word's example sentences: Korean (tap to hear) with the Hindi meaning. */
-const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, className = '' }) => {
+const Examples: React.FC<ExamplesProps> = ({ word, speak, size = 'normal', hidden = false, className = '' }) => {
   const examples = word.examples ?? [];
 
   useShortcuts((s) => {
@@ -25,12 +39,15 @@ const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, class
     return !!ex;
   });
 
-  if (examples.length === 0) return null;
+  if (examples.length === 0 || hidden) return null;
+  const sz = SIZES[size];
 
   return (
     <section
       aria-label="Example sentences"
-      className={`w-full bg-white/90 text-gray-900 rounded-[1.75rem] shadow-lg border border-black/5 ${compact ? 'p-4' : 'p-5 md:p-6'} ${className}`}
+      // Inside the full-screen card a click here must not also play the word.
+      onClick={(e) => e.stopPropagation()}
+      className={`w-full bg-white/90 text-gray-900 text-left cursor-auto rounded-[1.75rem] shadow-lg border border-black/5 ${sz.box} ${className}`}
     >
       <div className="flex items-baseline justify-between gap-3 mb-3">
         <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">In a sentence</h2>
@@ -50,7 +67,7 @@ const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, class
                 title={KEYS[i] ? `Play this sentence (${KEYS[i]})` : 'Play this sentence'}
                 aria-label={`Play example ${i + 1}`}
                 aria-keyshortcuts={KEYS[i]}
-                className="relative shrink-0 mt-0.5 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 active:scale-95 flex items-center justify-center transition-all"
+                className={`relative shrink-0 mt-0.5 ${sz.button} rounded-full bg-black/5 hover:bg-black/10 active:scale-95 flex items-center justify-center transition-all`}
               >
                 <i className="bi bi-volume-up-fill text-sm"></i>
                 {KEYS[i] && (
@@ -60,7 +77,7 @@ const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, class
                 )}
               </button>
               <div className="min-w-0">
-                <p lang="ko" className={`${compact ? 'text-base' : 'text-lg md:text-xl'} font-bold leading-snug break-keep`}>
+                <p lang="ko" className={`${sz.ko} font-bold leading-snug break-keep`}>
                   {hit ? (
                     <>
                       {ex.ko.slice(0, hit[0])}
@@ -71,7 +88,7 @@ const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, class
                     ex.ko
                   )}
                 </p>
-                <p lang="hi" className={`${compact ? 'text-sm' : 'text-base'} text-gray-600 font-devanagari leading-snug mt-0.5`}>
+                <p lang="hi" className={`${sz.hi} text-gray-600 font-devanagari leading-snug mt-0.5`}>
                   {ex.hi}
                 </p>
               </div>

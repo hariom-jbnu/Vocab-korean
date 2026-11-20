@@ -16,7 +16,12 @@ export type Shortcut =
   | { type: 'undo' }
   | { type: 'prev' }
   | { type: 'next' }
-  | { type: 'fullscreen' }
+  | { type: 'first' }
+  | { type: 'last' }
+  | { type: 'jump' }
+  | { type: 'shuffle' }
+  | { type: 'autoplay' }
+  | { type: 'color' }
   | { type: 'go'; to: Page }
   | { type: 'settings' }
   | { type: 'help' };
@@ -70,6 +75,18 @@ export function readShortcut(e: KeyInfo): Shortcut | null {
       return { type: 'prev' };
     case 'ArrowRight':
       return { type: 'next' };
+    case 'Home':
+      return { type: 'first' };
+    case 'End':
+      return { type: 'last' };
+    case 'KeyN':
+      return { type: 'jump' };
+    case 'KeyM':
+      return { type: 'shuffle' };
+    case 'KeyV':
+      return { type: 'autoplay' };
+    case 'KeyC':
+      return { type: 'color' };
     case 'Comma':
       return { type: 'settings' };
   }
@@ -82,6 +99,12 @@ export function readShortcut(e: KeyInfo): Shortcut | null {
 /** In Browse, F toggles full screen instead of answering. */
 export function isFullscreenKey(e: KeyInfo): boolean {
   return !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && e.code === 'KeyF';
+}
+
+/** In Browse, the number keys 1 to 4 show or hide a part of the card (A S D F do not). */
+export function numberKey(e: KeyInfo): 1 | 2 | 3 | 4 | null {
+  const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
+  return m ? (Number(m[1]) as 1 | 2 | 3 | 4) : null;
 }
 
 /** True while the learner types in a field, where keys must reach the field. */
@@ -122,7 +145,13 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string[]; label: s
     title: 'Browse',
     items: [
       { keys: ['←', '→'], label: 'Previous / next word (Space also goes next)' },
-      { keys: ['F'], label: 'Full screen on or off' },
+      { keys: ['Home', 'End'], label: 'First / last word' },
+      { keys: ['N'], label: 'Go to a word number' },
+      { keys: ['1', '2', '3', '4'], label: 'Show or hide Korean, English, Hindi, sentences' },
+      { keys: ['M'], label: 'Shuffle (random order) on or off' },
+      { keys: ['V'], label: 'Auto-play each word on or off' },
+      { keys: ['C'], label: 'Next card color' },
+      { keys: ['F'], label: 'Full screen on or off (Esc also leaves)' },
     ],
   },
   {

@@ -206,6 +206,7 @@ const App: React.FC = () => {
                     settings={settings}
                     setSettings={setSettings}
                     visibility={visibility}
+                    setVisibility={setVisibility}
                     speak={speak}
                     isFullScreen={isFullScreen}
                     setIsFullScreen={setIsFullScreen}
