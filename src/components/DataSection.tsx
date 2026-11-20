@@ -2,18 +2,20 @@ import React, { useRef, useState } from 'react';
 import type { Settings } from '../types';
 import { clearProgress, getAllCards, getAllReviews, replaceProgress } from '../lib/db';
 import { backupFileName, createBackup, parseBackup } from '../lib/backup';
-import { loadJson, saveJson } from '../lib/storage';
-import type { StudyPlan } from '../lib/plan';
+import { saveJson } from '../lib/storage';
+import { useCloud } from '../hooks/useCloud';
 
 /** Download, restore or reset learning progress. */
 const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cloud = useCloud();
+  const signedIn = !!cloud.user;
 
   const download = async () => {
     try {
       const [cards, reviews] = await Promise.all([getAllCards(), getAllReviews()]);
-      const blob = new Blob([JSON.stringify(createBackup(cards.values(), reviews, settings, loadJson<StudyPlan | null>('plan', null)))], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(createBackup(cards.values(), reviews, settings))], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -30,12 +32,13 @@ const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
     try {
       const backup = parseBackup(await file.text());
       const ok = window.confirm(
-        `Replace your current progress with this backup?\n\n${backup.cards.length} words and ${backup.reviews.length} answers will be restored.`
+        `Replace your current progress with this backup${signedIn ? ' on all your devices' : ''}?\n\n${backup.cards.length} words and ${backup.reviews.length} answers will be restored.`
       );
       if (!ok) return;
+      // Signed in: clear the account first so other devices take the backup too.
+      if (signedIn) await cloud.resetEverywhere();
       await replaceProgress(backup.cards, backup.reviews);
       if (backup.settings) saveJson('settings', { ...settings, ...backup.settings });
-      if (backup.plan) saveJson('plan', backup.plan);
       window.location.reload();
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Could not restore this file.', error: true });
@@ -43,15 +46,25 @@ const DataSection: React.FC<{ settings: Settings }> = ({ settings }) => {
   };
 
   const reset = async () => {
-    if (!window.confirm('Delete all learning progress in this browser? Download a backup first if you may want it back.')) return;
-    await clearProgress();
-    window.location.reload();
+    const where = signedIn ? 'in your account and on all your devices' : 'in this browser';
+    if (!window.confirm(`Delete all learning progress ${where}? Download a backup first if you may want it back.`)) return;
+    try {
+      if (signedIn) await cloud.resetEverywhere();
+      await clearProgress();
+      window.location.reload();
+    } catch (e) {
+      setMessage({ text: e instanceof Error ? e.message : 'Could not reset your progress. Check your connection.', error: true });
+    }
   };
 
   return (
     <section className="space-y-3">
       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Your Data</h3>
-      <p className="text-[11px] text-gray-400">Progress is saved only in this browser. Download a backup to keep it safe or move it to another device.</p>
+      <p className="text-[11px] text-gray-400">
+        {signedIn
+          ? 'Progress is saved in this browser and in your account. A backup file is a copy you keep yourself.'
+          : 'Progress is saved only in this browser. Download a backup to keep it safe or move it to another device.'}
+      </p>
       <div className="grid grid-cols-2 gap-2">
         <button onClick={download} className="py-3 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
           <i className="bi bi-download mr-1.5"></i>Backup

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { VocabItem } from '../types';
-import { getAllCards, getReviewsSince, saveAnswer, undoAnswer } from '../lib/db';
+import { getAllCards, getReviewsSince, PROGRESS_EVENT, progressSource, saveAnswer, undoAnswer } from '../lib/db';
 import { buildDailyQueue, countNewToday, pickNext, seededShuffle } from '../lib/queue';
 import { todaysNewTarget, type StudyPlan } from '../lib/plan';
 import { endOfStudyDay, startOfStudyDay } from '../lib/day';
@@ -55,8 +55,13 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const [storageError, setStorageError] = useState(false);
   const [newDoneToday, setNewDoneToday] = useState(0);
   const [newTarget, setNewTarget] = useState(newPerDay);
+  const [reloadKey, setReloadKey] = useState(0);
   const busy = useRef(false);
   const order = plan && planOrder && planOrder.length > 0 ? planOrder : null;
+  const answeredRef = useRef(0);
+  answeredRef.current = stats.answered;
+  const currentRef = useRef<string | undefined>(undefined);
+  currentRef.current = currentId;
 
   const show = useCallback((id: string | undefined) => {
     setCurrentId(id);
@@ -110,8 +115,28 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
     return () => {
       cancelled = true;
     };
-    // Rebuild only when the word list, the daily limit or the plan changes; the seed is fixed per learner.
-  }, [wordIds, newPerDay, order, plan?.days, plan?.startDay]);
+    // Rebuild only when the word list, the daily limit or the plan changes, or
+    // progress arrives from another device; the seed is fixed per learner.
+  }, [wordIds, newPerDay, order, plan?.days, plan?.startDay, reloadKey]);
+
+  // Progress synced from another device: rebuild today's queue if nothing was
+  // answered yet; mid-session, just use the newer cards for later answers.
+  useEffect(() => {
+    const onProgress = async (e: Event) => {
+      if (progressSource(e) !== 'remote') return;
+      if (answeredRef.current === 0) {
+        setReloadKey((k) => k + 1);
+        return;
+      }
+      try {
+        for (const [id, card] of await getAllCards()) if (id !== currentRef.current) cards.current.set(id, card);
+      } catch {
+        // Keep the cards already loaded.
+      }
+    };
+    window.addEventListener(PROGRESS_EVENT, onProgress);
+    return () => window.removeEventListener(PROGRESS_EVENT, onProgress);
+  }, []);
 
   const currentCard = currentId ? cards.current.get(currentId) : undefined;
   const isNew = !!currentId && (!currentCard || currentCard.state === State.New);

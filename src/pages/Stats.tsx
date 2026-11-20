@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Settings, VocabItem } from '../types';
 import type { DailyProgress } from '../hooks/useDailyProgress';
-import { getAllCards, getAllReviews } from '../lib/db';
+import { getAllCards, getAllReviews, PROGRESS_EVENT } from '../lib/db';
 import type { ReviewRecord, WordCard } from '../lib/srs';
 import { startOfStudyDay } from '../lib/day';
 import { dailyActivity, forecast, hardestWords, KNOWN_DAYS, stageCounts, STAGE_INFO, STAGES, trueRetention, type Stage } from '../lib/stats';
@@ -102,9 +102,18 @@ const Stats: React.FC<StatsProps> = ({ daily, vocab, settings, speak }) => {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    Promise.all([getAllCards(), getAllReviews()])
-      .then(([cards, reviews]) => setData({ cards, reviews }))
-      .catch(() => setFailed(true));
+    let alive = true;
+    const load = () =>
+      Promise.all([getAllCards(), getAllReviews()])
+        .then(([cards, reviews]) => alive && setData({ cards, reviews }))
+        .catch(() => alive && setFailed(true));
+    load();
+    // Refresh when progress arrives from another device.
+    window.addEventListener(PROGRESS_EVENT, load);
+    return () => {
+      alive = false;
+      window.removeEventListener(PROGRESS_EVENT, load);
+    };
   }, []);
 
   const view = useMemo(() => {

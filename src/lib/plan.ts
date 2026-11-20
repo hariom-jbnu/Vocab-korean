@@ -36,6 +36,21 @@ export const PLAN_ORDERS: Record<PlanOrder, { label: string; description: string
   },
 };
 
+/** A plan that came from storage or another device, checked before it is used. */
+export function isStudyPlan(v: unknown): v is StudyPlan {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const p = v as Record<string, unknown>;
+  const positiveInt = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n > 0;
+  return (
+    positiveInt(p.totalWords) &&
+    positiveInt(p.days) &&
+    typeof p.order === 'string' &&
+    Object.hasOwn(PLAN_ORDERS, p.order) &&
+    typeof p.startDay === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(p.startDay)
+  );
+}
+
 /** Days with more estimated study time than this get a warning. */
 export const HEAVY_MINUTES = 60;
 

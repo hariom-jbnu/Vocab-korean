@@ -1,5 +1,7 @@
 
 /** One example sentence with its Hindi translation. */
+import type { StudyPlan } from './lib/plan';
+
 export interface Example {
   ko: string;
   hi: string;
@@ -65,4 +67,6 @@ export interface Settings {
   answerMode: 'quiz' | 'flip';
   /** Include the typing round for well-known words (needs a Korean keyboard). */
   typeAnswers: boolean;
+  /** Active study plan (words, days, order, start day), or null for a fixed daily limit. */
+  plan: StudyPlan | null;
 }

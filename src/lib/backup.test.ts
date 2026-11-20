@@ -8,7 +8,7 @@ import { ThemeType, type Settings } from '../types';
 const now = new Date('2026-11-10T10:00:00Z');
 const settings: Settings = {
   voiceName: '', rate: 0.8, pitch: 1, autoSpeak: false, theme: ThemeType.NAVY, isRandom: false, cardBg: '#FFFFFF',
-  newPerDay: 10, dailyGoal: 20, retention: 0.9, seed: 1, answerMode: 'quiz', typeAnswers: true,
+  newPerDay: 10, dailyGoal: 20, retention: 0.9, seed: 1, answerMode: 'quiz', typeAnswers: true, plan: null,
 };
 
 afterEach(async () => {
@@ -47,14 +47,5 @@ describe('backup', () => {
 
   it('names files by date', () => {
     expect(backupFileName(now)).toBe('vocab-korean-backup-2026-11-10.json');
-  });
-});
-
-describe('backup with a study plan', () => {
-  it('keeps the plan through a round trip', () => {
-    const plan = { totalWords: 2000, days: 30, order: 'mixed' as const, startDay: '2026-11-20' };
-    const parsed = parseBackup(JSON.stringify(createBackup([], [], {} as never, plan)));
-    expect(parsed.plan).toEqual(plan);
-    expect(parseBackup(JSON.stringify(createBackup([], [], {} as never))).plan).toBeUndefined();
   });
 });
