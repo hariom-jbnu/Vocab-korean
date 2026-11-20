@@ -7,7 +7,7 @@ Learn Korean vocabulary with active recall and spaced repetition, with Hindi and
 <p align="center">
   <a href="https://github.com/hariom-jbnu/Vocab-korean">Repository</a>
   •
-  <a href="https://vocab.free.nf/?i=1">Live Demo</a>
+  <a href="https://kvocab.vercel.app">Live app: kvocab.vercel.app</a>
 </p>
 
 ---
