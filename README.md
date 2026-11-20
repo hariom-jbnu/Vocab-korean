@@ -55,8 +55,22 @@ Built for:
 
 ### Keyboard shortcuts
 
+Everything works from the keyboard: left hand on `A S D F` to answer, right hand on `J K L` to listen, thumb on `Space`. Keys go by their position, so they work with the Korean keyboard layout on. Press `?` in the app for the full list.
+
 | Key | Action |
 |---|---|
+| `Space` / `Enter` | Show answer, continue, next card |
+| `A` `S` `D` `F` (or `1` `2` `3` `4`) | Pick choice 1–4 in the quiz, or Again / Hard / Good / Easy on flip cards |
+| `J` (or `R`) | Play the word again |
+| `K` / `L` | Play example sentence 1 / 2 |
+| `Esc` | Typing round: "I don't know"; closes settings and the shortcut list |
+| `U` / `Ctrl+Z` | Undo the last answer |
+| `←` `→` | Previous / next word in Browse (`Space` also goes next) |
+| `F` | Full screen in Browse |
+| `H` `P` `G` `B` | Go to Review, Plan, Stats, Browse |
+| `,` / `?` | Open settings / the shortcut list |
+
+---|---|
 | `1` `2` `3` `4` | Pick a choice in the quiz, or Again / Hard / Good / Easy on flip cards |
 | `Space` / `Enter` | Continue after a quiz answer; on flip cards, show answer then rate Good |
 | `R` | Play audio |

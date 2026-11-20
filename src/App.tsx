@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { HashRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom';
 import Review from './pages/Review';
 import Browse from './pages/Browse';
 import Stats from './pages/Stats';
@@ -7,6 +7,8 @@ import Plan from './pages/Plan';
 import Contact from './pages/Contact';
 import Footer from './components/Footer';
 import SettingsPanel from './components/SettingsPanel';
+import ShortcutHelp, { onShortcutListRequest } from './components/ShortcutHelp';
+import { useShortcuts } from './hooks/useShortcuts';
 import { ThemeType, Settings, VisibilitySettings } from './types';
 import { THEMES, LOGO_PATH } from './constants';
 import { DEFAULT_RETENTION } from './lib/srs';
@@ -37,12 +39,26 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const NAV = [
-  { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review' },
-  { to: '/plan', icon: 'bi-calendar2-check-fill', label: 'Plan' },
-  { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats' },
-  { to: '/browse', icon: 'bi-card-text', label: 'Browse' },
-  { to: '/contact', icon: 'bi-person-lines-fill', label: 'Contact' },
+  { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review', key: 'H' },
+  { to: '/plan', icon: 'bi-calendar2-check-fill', label: 'Plan', key: 'P' },
+  { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats', key: 'G' },
+  { to: '/browse', icon: 'bi-card-text', label: 'Browse', key: 'B' },
+  { to: '/contact', icon: 'bi-person-lines-fill', label: 'Contact', key: '' },
 ];
+
+/** Keys that work on every page: go to a page, open settings or the shortcut list. */
+const GlobalShortcuts: React.FC<{ onSettings: () => void; onHelp: () => void }> = ({ onSettings, onHelp }) => {
+  const navigate = useNavigate();
+  useShortcuts((s) => {
+    if (s.type === 'go') navigate(s.to);
+    else if (s.type === 'settings') onSettings();
+    else if (s.type === 'help') onHelp();
+    else return false;
+    return true;
+  });
+  useEffect(() => onShortcutListRequest(onHelp), [onHelp]);
+  return null;
+};
 
 /** Day streak plus today's progress toward the daily goal. */
 const StreakBadge: React.FC<{ daily: DailyProgress; goal: number }> = ({ daily, goal }) => {
@@ -79,6 +95,9 @@ const App: React.FC = () => {
   const { words: vocab, failed: vocabFailed } = useVocab();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const openHelp = useCallback(() => setIsHelpOpen(true), []);
+  const closeHelp = useCallback(() => setIsHelpOpen(false), []);
   const [settings, setSettings] = usePersistentState<Settings>('settings', DEFAULT_SETTINGS);
   const [visibility, setVisibility] = usePersistentState<VisibilitySettings>('visibility', { ko: true, hi: true, en: true });
   const { voices, speak, supported, hasKoreanVoice } = useSpeech(settings);
@@ -106,6 +125,7 @@ const App: React.FC = () => {
     <CloudProvider settings={settings} setSettings={setSettings}>
       <OpenOnPasswordReset open={openSettings} />
       <HashRouter>
+        <GlobalShortcuts onSettings={openSettings} onHelp={openHelp} />
         <div
           className={`min-h-screen flex flex-col transition-colors duration-500 font-sans ${isFullScreen ? 'overflow-hidden' : ''}`}
           style={{ backgroundColor: currentTheme.background, color: currentTheme.text }}
@@ -125,7 +145,7 @@ const App: React.FC = () => {
                     key={item.to}
                     to={item.to}
                     end
-                    title={item.label}
+                    title={item.key ? `${item.label} (${item.key})` : item.label}
                     className={({ isActive }) =>
                       `flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl transition-all hover:bg-black/5 ${isActive ? 'text-indigo-600' : 'text-gray-800'}`
                     }
@@ -134,7 +154,15 @@ const App: React.FC = () => {
                     <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">{item.label}</span>
                   </NavLink>
                 ))}
-                <button onClick={openSettings} title="Settings" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
+                <button
+                  onClick={openHelp}
+                  title="Keyboard shortcuts (?)"
+                  aria-label="Keyboard shortcuts"
+                  className="hidden md:block px-3 py-2 rounded-xl hover:bg-black/5 transition-all"
+                >
+                  <i className="bi bi-keyboard text-xl"></i>
+                </button>
+                <button onClick={openSettings} title="Settings (,)" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
                   <i className="bi bi-gear-fill text-xl"></i>
                 </button>
               </nav>
@@ -191,6 +219,8 @@ const App: React.FC = () => {
           </main>
 
           {!isFullScreen && <Footer theme={currentTheme} />}
+
+          {isHelpOpen && <ShortcutHelp onClose={closeHelp} />}
 
           {isSettingsOpen && (
             <SettingsPanel

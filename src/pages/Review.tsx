@@ -11,6 +11,8 @@ import TypingQuiz from '../components/TypingQuiz';
 import { chooseExercise } from '../lib/quiz';
 import { stageOf, STAGE_INFO } from '../lib/stats';
 import { dayNumber, type StudyPlan } from '../lib/plan';
+import { useShortcuts } from '../hooks/useShortcuts';
+import { openShortcutList } from '../components/ShortcutHelp';
 
 interface ReviewProps {
   daily: DailyProgress | null;
@@ -29,15 +31,15 @@ interface ReviewProps {
   planOrder: string[] | null;
 }
 
+/** Home-row keys for Again / Hard / Good / Easy (1 2 3 4 work too). */
+const FLIP_KEYS: Record<Grade, string> = { 1: 'A', 2: 'S', 3: 'D', 4: 'F' };
+
 const GRADE_STYLES: Record<Grade, string> = {
   1: 'bg-rose-600 hover:bg-rose-700 shadow-rose-900/20',
   2: 'bg-amber-500 hover:bg-amber-600 shadow-amber-900/20',
   3: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20',
   4: 'bg-sky-600 hover:bg-sky-700 shadow-sky-900/20',
 };
-
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
 const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, visibility, theme, speak, canListen, paused, plan, planOrder }) => {
   const session = useReviewSession(vocab, { ...settings, plan, planOrder });
@@ -53,33 +55,30 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
     if (current && speakOnShow) speak(current.ko);
   }, [current, speakOnShow, speak]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (paused || isTyping(e.target) || e.metaKey || e.altKey) return;
-      if ((e.key === 'z' && e.ctrlKey) || (e.key.toLowerCase() === 'u' && !e.ctrlKey)) {
-        e.preventDefault();
-        undo();
-        return;
-      }
-      if (e.ctrlKey || !current) return;
-      if (e.key.toLowerCase() === 'r') {
-        speak(current.ko);
-      } else if (quiz) {
-        // The quiz card handles its own keys.
-      } else if (!revealed && (e.key === ' ' || e.key === 'Enter')) {
-        e.preventDefault();
-        reveal();
-      } else if (revealed && (e.key === ' ' || e.key === 'Enter')) {
-        e.preventDefault();
-        answer(3);
-      } else if (revealed && ['1', '2', '3', '4'].includes(e.key)) {
-        e.preventDefault();
-        answer(Number(e.key) as Grade);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [paused, quiz, current, revealed, reveal, answer, undo, speak]);
+  // Quiz cards handle their own answer, continue and audio keys; this covers
+  // undo, and every key of the flip card.
+  useShortcuts((s) => {
+    if (paused) return false;
+    if (s.type === 'undo') {
+      undo();
+      return true;
+    }
+    if (!current || quiz) return false;
+    if (s.type === 'speak') {
+      speak(current.ko);
+      return true;
+    }
+    if (s.type === 'primary') {
+      if (revealed) answer(3);
+      else reveal();
+      return true;
+    }
+    if (s.type === 'answer' && revealed) {
+      answer(s.n as Grade);
+      return true;
+    }
+    return false;
+  });
 
   if (session.loading) {
     return (
@@ -200,8 +199,9 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
                 e.stopPropagation();
                 speak(current.ko);
               }}
-              title="Play audio (R)"
+              title="Play audio (J)"
               aria-label="Play audio"
+              aria-keyshortcuts="J R"
               className="absolute top-5 right-6 w-10 h-10 rounded-full flex items-center justify-center text-xl opacity-60 hover:opacity-100 hover:bg-black/5 transition-all"
             >
               <i className="bi bi-volume-up-fill"></i>
@@ -241,7 +241,7 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
                 >
                   <span className="text-sm md:text-base font-black">{GRADE_LABELS[g]}</span>
                   <span className="text-[10px] font-bold opacity-80">{formatInterval(new Date(), session.previews![g])}</span>
-                  <kbd className="hidden md:block mt-1 text-[9px] font-black opacity-60">{g}</kbd>
+                  <kbd className="hidden md:block mt-1 text-[9px] font-black opacity-60">{FLIP_KEYS[g]}</kbd>
                 </button>
               ))}
             </div>
@@ -259,16 +259,19 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
       ) : null}
 
       {current && (
-        <p className="hidden md:flex flex-wrap justify-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-50">
+        <p className="hidden md:flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-60">
           {exercise === 'type' ? (
-            <span>Enter check · Enter continue</span>
+            <span>Enter check · Esc don't know · Space next</span>
           ) : quiz ? (
-            <span>1-4 pick · Space continue</span>
+            <span>A S D F pick · Space next</span>
           ) : (
-            <span>Space reveal / good · 1-4 rate</span>
+            <span>Space show / good · A S D F rate</span>
           )}
-          <span>R audio</span>
+          <span>J word · K L sentences</span>
           <span>U undo</span>
+          <button onClick={openShortcutList} className="underline underline-offset-2 hover:opacity-100 uppercase tracking-[0.2em]">
+            ? all keys
+          </button>
         </p>
       )}
 

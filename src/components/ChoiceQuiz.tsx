@@ -4,6 +4,7 @@ import { buildChoices, gradeChoice, meaningLines } from '../lib/quiz';
 import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
 import Examples from './Examples';
+import { useShortcuts } from '../hooks/useShortcuts';
 
 interface ChoiceQuizProps {
   /** choice: read the word; listen: hear it with the word hidden. */
@@ -17,6 +18,9 @@ interface ChoiceQuizProps {
   onAnswer: (grade: Grade, durationMs: number) => void;
   paused: boolean;
 }
+
+/** Home-row keys for the four choices (1 2 3 4 work too). */
+const CHOICE_KEYS = ['A', 'S', 'D', 'F'];
 
 /** See (or hear) the Korean word and pick its meaning from four options. */
 const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, cardBg, badge, speak, onAnswer, paused }) => {
@@ -49,19 +53,21 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, c
     onAnswer(gradeChoice(correct, answeredAfter.current), answeredAfter.current);
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (paused || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (!done && ['1', '2', '3', '4'].includes(e.key)) {
-        e.preventDefault();
-        pick(Number(e.key) - 1);
-      } else if (done && (e.key === ' ' || e.key === 'Enter')) {
-        e.preventDefault();
-        next();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+  useShortcuts((s) => {
+    if (paused) return false;
+    if (s.type === 'answer' && !done && s.n <= choices.length) {
+      pick(s.n - 1);
+      return true;
+    }
+    if (s.type === 'primary' && done) {
+      next();
+      return true;
+    }
+    if (s.type === 'speak') {
+      speak(word.ko);
+      return true;
+    }
+    return false;
   });
 
   const lines = meaningLines(word, visibility);
@@ -76,8 +82,9 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, c
         {badge}
         <button
           onClick={() => speak(word.ko)}
-          title="Play audio (R)"
+          title="Play audio (J)"
           aria-label="Play audio"
+          aria-keyshortcuts="J R"
           className="absolute top-5 right-6 w-10 h-10 rounded-full flex items-center justify-center text-xl opacity-60 hover:opacity-100 hover:bg-black/5 transition-all"
         >
           <i className="bi bi-volume-up-fill"></i>
@@ -125,7 +132,12 @@ const ChoiceQuiz: React.FC<ChoiceQuizProps> = ({ mode, word, pool, visibility, c
               disabled={done}
               className={`flex items-center gap-3 text-left px-4 py-3 rounded-2xl border shadow-sm transition-all active:scale-[0.99] ${tone}`}
             >
-              <kbd className="shrink-0 w-6 h-6 rounded-lg bg-black/10 text-[11px] font-black flex items-center justify-center">{i + 1}</kbd>
+              <kbd
+                title={`Key ${CHOICE_KEYS[i]} or ${i + 1}`}
+                className="shrink-0 w-6 h-6 rounded-lg bg-black/10 text-[11px] font-black flex items-center justify-center"
+              >
+                {CHOICE_KEYS[i]}
+              </kbd>
               <span className="min-w-0">
                 {l.en && <span className="block font-bold leading-tight truncate">{l.en}</span>}
                 {l.hi && (

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Settings, ThemeType, VisibilitySettings, ThemeColors } from '../types';
 import DataSection from './DataSection';
 import AccountSection from './AccountSection';
@@ -26,11 +26,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onClose,
   planPerDay,
 }) => {
+  // Esc closes settings, unless it is ending a Korean syllable being typed.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 overflow-hidden relative border border-black/5" style={{ color: '#111827' }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 overflow-hidden relative border border-black/5"
+        style={{ color: '#111827' }}
+      >
         <button 
           onClick={onClose}
+          title="Close (Esc)"
+          aria-label="Close settings"
           className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <i className="bi bi-x-lg"></i>

@@ -5,6 +5,8 @@ import { CARD_PALETTE } from '../constants';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { contrastText } from '../lib/color';
 import Examples from '../components/Examples';
+import { useShortcuts } from '../hooks/useShortcuts';
+import { isFullscreenKey } from '../lib/shortcuts';
 
 interface BrowseProps {
   vocab: VocabItem[];
@@ -45,23 +47,23 @@ const Browse: React.FC<BrowseProps> = ({ vocab, settings, setSettings, visibilit
     }
   }, [vocab, settings.isRandom, handleNext]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'Enter') {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().then(() => setIsFullScreen(true)).catch(() => {});
-        } else {
-          document.exitFullscreen().then(() => setIsFullScreen(false)).catch(() => {});
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrev, setIsFullScreen]);
+  const toggleFullScreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullScreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullScreen(false)).catch(() => {});
+    }
+  }, [setIsFullScreen]);
+
+  useShortcuts((s, e) => {
+    if (vocab.length === 0) return false;
+    if (s.type === 'next' || s.type === 'primary') handleNext();
+    else if (s.type === 'prev') handlePrev();
+    else if (s.type === 'speak') speak(vocab[currentIndex].ko);
+    else if (isFullscreenKey(e)) toggleFullScreen();
+    else return false;
+    return true;
+  });
 
   useEffect(() => {
     const handleFsChange = () => setIsFullScreen(!!document.fullscreenElement);
@@ -216,7 +218,10 @@ const Browse: React.FC<BrowseProps> = ({ vocab, settings, setSettings, visibilit
              {settings.isRandom ? 'RANDOM' : 'SEQUENTIAL'}
            </span>
            <span className="opacity-20">|</span>
-           <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">Enter</kbd> FS</span>
+           <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">←</kbd><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">→</kbd> words</span>
+           <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">J</kbd> word</span>
+           <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">K</kbd><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">L</kbd> sentences</span>
+           <span className="flex items-center gap-1"><kbd className="bg-white px-1.5 py-0.5 rounded border border-black/5 shadow-sm text-gray-800">F</kbd> full screen</span>
         </div>
       )}
 

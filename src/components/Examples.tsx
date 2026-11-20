@@ -1,6 +1,10 @@
 import React from 'react';
 import type { VocabItem } from '../types';
 import { findWordInSentence } from '../lib/planWords';
+import { useShortcuts } from '../hooks/useShortcuts';
+
+/** Keys that play sentence 1 and 2. */
+const KEYS = ['K', 'L'];
 
 interface ExamplesProps {
   word: VocabItem;
@@ -13,6 +17,14 @@ interface ExamplesProps {
 /** The word's example sentences: Korean (tap to hear) with the Hindi meaning. */
 const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, className = '' }) => {
   const examples = word.examples ?? [];
+
+  useShortcuts((s) => {
+    if (s.type !== 'example') return false;
+    const ex = examples[s.n - 1];
+    if (ex) speak(ex.ko);
+    return !!ex;
+  });
+
   if (examples.length === 0) return null;
 
   return (
@@ -35,11 +47,17 @@ const Examples: React.FC<ExamplesProps> = ({ word, speak, compact = false, class
                   e.stopPropagation();
                   speak(ex.ko);
                 }}
-                title="Play this sentence"
+                title={KEYS[i] ? `Play this sentence (${KEYS[i]})` : 'Play this sentence'}
                 aria-label={`Play example ${i + 1}`}
-                className="shrink-0 mt-0.5 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 active:scale-95 flex items-center justify-center transition-all"
+                aria-keyshortcuts={KEYS[i]}
+                className="relative shrink-0 mt-0.5 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 active:scale-95 flex items-center justify-center transition-all"
               >
                 <i className="bi bi-volume-up-fill text-sm"></i>
+                {KEYS[i] && (
+                  <kbd className="hidden md:flex absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded bg-white border border-black/10 text-[8px] font-black text-gray-500 items-center justify-center shadow-sm">
+                    {KEYS[i]}
+                  </kbd>
+                )}
               </button>
               <div className="min-w-0">
                 <p lang="ko" className={`${compact ? 'text-base' : 'text-lg md:text-xl'} font-bold leading-snug break-keep`}>
