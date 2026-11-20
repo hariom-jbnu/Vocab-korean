@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCloud } from '../hooks/useCloud';
-import { authErrorText, MIN_PASSWORD } from '../lib/authErrors';
+import { authError, authErrorText, MIN_PASSWORD, normalizeUsername, USERNAME_PATTERN, USERNAME_RULE } from '../lib/authErrors';
+import { setStaySignedIn, staySignedIn } from '../lib/supabase';
 
 const label = 'block text-[10px] font-bold text-gray-500 uppercase mb-2';
 const input =
@@ -89,6 +90,58 @@ const NewPasswordForm: React.FC<{
 
 type Mode = 'sign-in' | 'sign-up';
 
+/** Choose the short username used to sign in instead of the email. */
+const UsernameForm: React.FC<{ current: string | null; busy: boolean; onSave: (name: string) => void; onCancel?: () => void }> = ({
+  current,
+  busy,
+  onSave,
+  onCancel,
+}) => {
+  const [name, setName] = useState(current ?? '');
+  const clean = normalizeUsername(name);
+  const valid = USERNAME_PATTERN.test(clean);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onSave(clean);
+      }}
+      className="space-y-2"
+    >
+      <label htmlFor="account-username" className={label}>
+        Username for quick sign-in
+      </label>
+      <div className="flex gap-2">
+        <input
+          id="account-username"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          autoComplete="username"
+          placeholder="e.g. hariom"
+          className={`${input} flex-1 min-w-0`}
+        />
+        <button type="submit" disabled={busy || !valid || clean === current} className={`${secondary} px-4`}>
+          Save
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-400">
+        {USERNAME_RULE}. Then sign in on any computer with just this and your password.
+        {onCancel && (
+          <>
+            {' '}
+            <button type="button" onClick={onCancel} className="font-bold underline">
+              Cancel
+            </button>
+          </>
+        )}
+      </p>
+    </form>
+  );
+};
+
 /** Sign in to sync progress across devices. Hidden when the build has no Supabase. */
 const AccountSection: React.FC = () => {
   const cloud = useCloud();
@@ -98,6 +151,8 @@ const AccountSection: React.FC = () => {
   const [code, setCode] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [changingUsername, setChangingUsername] = useState(false);
+  const [stay, setStay] = useState(staySignedIn);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(
     cloud.error ? { text: cloud.error, error: true } : null
@@ -165,11 +220,32 @@ const AccountSection: React.FC = () => {
         {heading}
         <div className="p-4 bg-gray-50 rounded-2xl">
           <p className="text-sm font-black text-gray-700 break-all">{cloud.user.email ?? 'Signed in'}</p>
+          {cloud.username && !changingUsername && (
+            <p className="text-[11px] text-gray-500 mt-1">
+              Username <span className="font-black text-gray-700">{cloud.username}</span>{' '}
+              <button onClick={() => setChangingUsername(true)} className="font-bold underline">
+                Change
+              </button>
+            </p>
+          )}
           <p className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-1">
             <i className={`bi ${cloud.status === 'error' ? 'bi-cloud-slash text-rose-500' : cloud.status === 'offline' ? 'bi-cloud-slash' : 'bi-cloud-check text-emerald-600'}`}></i>
             {state}
           </p>
         </div>
+        {(!cloud.username || changingUsername) && (
+          <UsernameForm
+            current={cloud.username}
+            busy={busy}
+            onCancel={cloud.username ? () => setChangingUsername(false) : undefined}
+            onSave={(name) =>
+              act(async () => {
+                await cloud.setUsername(name);
+                setChangingUsername(false);
+              }, `Saved. Next time sign in with "${name}" and your password.`)
+            }
+          />
+        )}
         {showPasswordForm && (
           <NewPasswordForm
             busy={busy}
@@ -280,8 +356,8 @@ const AccountSection: React.FC = () => {
     <section className="space-y-3">
       {heading}
       <p className="text-[11px] text-gray-400">
-        Sign in to keep your progress safe and use it on all your devices. Your email is your ID. You can keep studying without an account;
-        your progress so far moves into your account when you sign in.
+        Sign in to keep your progress safe and use it on any computer. Sign in with your username (or email) and password. You can keep
+        studying without an account; your progress so far moves into your account when you sign in.
       </p>
 
       <div role="tablist" aria-label="Account" className="flex gap-1 p-1 rounded-2xl bg-gray-100">
@@ -299,20 +375,24 @@ const AccountSection: React.FC = () => {
               if (result === 'confirm-email') setSentTo(to);
             });
           } else {
+            setStaySignedIn(stay);
             act(() => cloud.signIn(to, password));
           }
         }}
         className="space-y-2"
       >
         <label htmlFor="account-email" className={label}>
-          Email
+          {signingUp ? 'Email' : 'Username or email'}
         </label>
         <input
           id="account-email"
-          type="email"
+          type={signingUp ? 'email' : 'text'}
           required
-          autoComplete="email"
-          placeholder="you@example.com"
+          autoComplete={signingUp ? 'email' : 'username'}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder={signingUp ? 'you@example.com' : 'username or you@example.com'}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className={input}
@@ -328,6 +408,20 @@ const AccountSection: React.FC = () => {
           minLength={signingUp ? MIN_PASSWORD : undefined}
         />
         {signingUp && <p className="text-[11px] text-gray-400">At least {MIN_PASSWORD} characters.</p>}
+        {!signingUp && (
+          <label className="flex items-start gap-2 text-[11px] text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={stay}
+              onChange={(e) => setStay(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-indigo-600"
+            />
+            <span>
+              <span className="font-bold text-gray-700">Stay signed in.</span> Untick on a shared or university computer, so closing the
+              browser signs you out.
+            </span>
+          </label>
+        )}
         <button
           type="submit"
           disabled={busy || !email.trim() || !password || (signingUp && password.length < MIN_PASSWORD)}
@@ -342,8 +436,8 @@ const AccountSection: React.FC = () => {
             disabled={busy}
             onClick={() => {
               const to = email.trim();
-              if (!to) {
-                setMessage({ text: 'Type your email above first, then tap "Forgot password" again.', error: true });
+              if (!to.includes('@')) {
+                setMessage({ text: authErrorText(authError('need_email')), error: true });
                 return;
               }
               act(
@@ -370,8 +464,8 @@ const AccountSection: React.FC = () => {
           disabled={busy}
           onClick={() => {
             const to = email.trim();
-            if (!to) {
-              setMessage({ text: 'Type your email above first.', error: true });
+            if (!to.includes('@')) {
+              setMessage({ text: authErrorText(authError('need_email')), error: true });
               return;
             }
             act(async () => {

@@ -1,6 +1,15 @@
 /** Shortest password the sign-up and change-password forms accept. */
 export const MIN_PASSWORD = 8;
 
+/** Usernames: what the database accepts (see the vocab_usernames migration). */
+export const USERNAME_PATTERN = /^[a-z0-9_-]{3,20}$/;
+export const USERNAME_RULE = '3 to 20 small letters, digits, - or _';
+
+/** A username as stored: trimmed and in lower case. */
+export function normalizeUsername(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 /** Plain-language text for the errors Supabase Auth returns, by error code. */
 const BY_CODE: Record<string, string> = {
   invalid_credentials: 'Wrong email or password.',
@@ -17,6 +26,12 @@ const BY_CODE: Record<string, string> = {
   email_provider_disabled: 'Email sign-in is turned off for this app.',
   otp_expired: 'That code or link has expired or was already used. Ask for a new one.',
   reauthentication_needed: 'For safety, sign out and sign in again before changing your password.',
+  wrong_username: 'Wrong username or password.',
+  too_many_attempts: 'Too many wrong passwords for this username. Wait 15 minutes, or sign in with your email.',
+  usernames_not_ready: 'Usernames are not set up on the server yet. Sign in with your email for now.',
+  username_taken: 'That username is taken. Try another one.',
+  username_invalid: `A username has ${USERNAME_RULE}.`,
+  need_email: 'Type your email here (not your username) to get an email.',
 };
 
 const UNREACHABLE = 'Could not reach the server. Check your connection and try again.';
@@ -36,4 +51,14 @@ export function authErrorText(e: unknown): string {
 /** An error with a Supabase-style code, for cases the app detects itself. */
 export function authError(code: string, message = BY_CODE[code] ?? code): Error & { code: string } {
   return Object.assign(new Error(message), { code });
+}
+
+/** Errors from the username lookup and the profile table, as the codes above. */
+export function profileError(e: { code?: string; message?: string }): Error {
+  if (e.message?.includes('too_many_attempts')) return authError('too_many_attempts');
+  if (e.code === '23505') return authError('username_taken');
+  if (e.code === '23514') return authError('username_invalid');
+  // The table or function is missing: the usernames migration has not been run.
+  if (e.code && ['PGRST202', 'PGRST205', '42P01', '42883'].includes(e.code)) return authError('usernames_not_ready');
+  return Object.assign(new Error(e.message || 'Something went wrong. Try again.'), { code: e.code });
 }

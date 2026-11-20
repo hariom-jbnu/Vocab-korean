@@ -11,7 +11,7 @@ import {
   loadSupabase,
   onPasswordRecovery,
 } from '../lib/supabase';
-import { authError } from '../lib/authErrors';
+import { authError, normalizeUsername, profileError, USERNAME_PATTERN } from '../lib/authErrors';
 import { forgetSyncAccount, loadMeta, markSettingsChanged, resetRemoteProgress, syncProgress } from '../lib/sync';
 import { applyRemoteSettings, syncedSettings } from '../lib/syncData';
 
@@ -32,7 +32,12 @@ export interface Cloud {
   error: string | null;
   /** True after the learner opens a password reset link, until a new password is set. */
   recovering: boolean;
-  signIn(email: string, password: string): Promise<void>;
+  /** The signed-in account's username, if it has one. */
+  username: string | null;
+  /** Sign in with an email or a username, and the password. */
+  signIn(login: string, password: string): Promise<void>;
+  /** Choose or change the username used to sign in. */
+  setUsername(name: string): Promise<void>;
   /** 'signed-in' right away, or 'confirm-email' when the account must be confirmed from an email first. */
   signUp(email: string, password: string): Promise<'signed-in' | 'confirm-email'>;
   /** Email a link that lets the learner choose a new password. */
@@ -79,6 +84,7 @@ export const CloudProvider: React.FC<ProviderProps> = ({ settings, setSettings, 
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(() => loadMeta().lastSyncedAt);
   const [error, setError] = useState<string | null>(initialAuthError);
   const [recovering, setRecovering] = useState(false);
+  const [username, setUsernameState] = useState<string | null>(null);
 
   const userRef = useRef<CloudUser | null>(null);
   const settingsRef = useRef(settings);
@@ -151,6 +157,23 @@ export const CloudProvider: React.FC<ProviderProps> = ({ settings, setSettings, 
 
   useEffect(() => onPasswordRecovery(() => setRecovering(true)), []);
 
+  // The account's username, shown in settings. Missing table: no usernames yet.
+  useEffect(() => {
+    setUsernameState(null);
+    if (!client || !user) return;
+    let live = true;
+    client
+      .from('vocab_profiles')
+      .select('username')
+      .maybeSingle<{ username: string }>()
+      .then(({ data }) => {
+        if (live) setUsernameState(data?.username ?? null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [client, user]);
+
   // Follow the sign-in state. A new sign-in starts a full sync.
   useEffect(() => {
     if (!client) return;
@@ -213,10 +236,30 @@ export const CloudProvider: React.FC<ProviderProps> = ({ settings, setSettings, 
       lastSyncedAt,
       error,
       recovering,
-      async signIn(email, password) {
+      username,
+      async signIn(login, password) {
         if (!client) throw new Error(UNREACHABLE);
-        const { error: e } = await client.auth.signInWithPassword({ email: email.trim(), password });
+        let email = login.trim();
+        if (!email.includes('@')) {
+          // A username: ask for the email behind it, which needs the right password.
+          const { data, error: e } = await client.rpc('vocab_login_email', { login: email, password });
+          if (e) throw profileError(e);
+          if (typeof data !== 'string' || !data) throw authError('wrong_username');
+          email = data;
+        }
+        const { error: e } = await client.auth.signInWithPassword({ email, password });
         if (e) throw e;
+      },
+      async setUsername(name) {
+        const current = userRef.current;
+        if (!client || !current) throw new Error(UNREACHABLE);
+        const clean = normalizeUsername(name);
+        if (!USERNAME_PATTERN.test(clean)) throw authError('username_invalid');
+        const { error: e } = await client
+          .from('vocab_profiles')
+          .upsert({ user_id: current.id, username: clean, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        if (e) throw profileError(e);
+        setUsernameState(clean);
       },
       async signUp(email, password) {
         if (!client) throw new Error(UNREACHABLE);
@@ -289,7 +332,7 @@ export const CloudProvider: React.FC<ProviderProps> = ({ settings, setSettings, 
         await resetRemoteProgress(client, current.id);
       },
     }),
-    [client, user, status, lastSyncedAt, error, recovering, run]
+    [client, user, status, lastSyncedAt, error, recovering, username, run]
   );
 
   return <CloudContext.Provider value={value}>{children}</CloudContext.Provider>;

@@ -45,7 +45,7 @@ Built for:
 - **Stats**: words known, recall over the last 30 days, word stages, a 14-day review forecast and your hardest words
 - **Daily goal and streak**, with one missed day a week forgiven
 - **Saved progress**: cards and the full review history are stored in IndexedDB
-- **Account and sync** (optional): create an account with your email and a password (or sign in with an emailed code or Google) and your progress, history, study plan and settings follow you to every device. Forgot your password? Get a reset link by email. Studying offline or without an account still works
+- **Account and sync** (optional): create an account with your email and a password (or sign in with an emailed code or Google) and your progress, history, study plan and settings follow you to every device. Pick a short **username** to sign in with instead of the email, and untick **Stay signed in** on a shared computer so closing the browser signs you out. Forgot your password? Get a reset link by email. Studying offline or without an account still works
 - **Backup and restore** your progress as a file, or reset it
 - **Works offline** and can be installed to the home screen
 - **Undo** the last answer
@@ -215,7 +215,7 @@ Accounts are optional. Without Supabase settings the app runs fully in the brows
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. Run [`supabase/migrations/20261110000000_vocab_progress_sync.sql`](supabase/migrations/20261110000000_vocab_progress_sync.sql) in the SQL editor, or `supabase db push` with the Supabase CLI.
+2. Run the files in [`supabase/migrations/`](supabase/migrations/) in name order in the SQL editor, or `supabase db push` with the Supabase CLI. The second one adds usernames: the app looks up the email behind a username only when the password is right, and stops answering for 15 minutes after 10 wrong passwords.
 3. In **Authentication > URL Configuration**, set the Site URL to your production URL and add redirect URLs for local development and previews, for example `http://localhost:3000/**` and `https://*-your-team.vercel.app/**`.
 4. In **Authentication > Sign In / Providers > Email**, keep the email provider and *Confirm email* on. Learners sign up with an email and a password (at least 8 characters; set the same minimum under *Password Requirements*) and confirm the address from the email they get.
 5. In **Authentication > Emails**, add `{{ .Token }}` to the *Magic Link* and *Confirm signup* templates so emails include a 6-digit code. The code works inside the installed app, where a link would open the browser instead. The *Reset Password* email needs no change: its link opens the app, which asks for a new password.

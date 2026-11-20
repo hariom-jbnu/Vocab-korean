@@ -7,6 +7,54 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 const env = import.meta.env;
 // The NEXT_PUBLIC_ names are what the Supabase integration on Vercel sets.
 const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const STAY_KEY = 'vocab:stay-signed-in';
+
+/** False after the learner unticked "Stay signed in", e.g. on a university computer. */
+export function staySignedIn(): boolean {
+  try {
+    return localStorage.getItem(STAY_KEY) !== 'no';
+  } catch {
+    return true;
+  }
+}
+
+export function setStaySignedIn(stay: boolean): void {
+  try {
+    if (stay) localStorage.removeItem(STAY_KEY);
+    else localStorage.setItem(STAY_KEY, 'no');
+  } catch {
+    // Storage blocked: the session follows the browser's default.
+  }
+}
+
+/**
+ * Where the sign-in is kept: localStorage normally, or sessionStorage when the
+ * learner chose not to stay signed in, so closing the browser signs them out.
+ */
+const authStorage = {
+  getItem(k: string): string | null {
+    try {
+      return (staySignedIn() ? localStorage : sessionStorage).getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  setItem(k: string, v: string): void {
+    try {
+      (staySignedIn() ? localStorage : sessionStorage).setItem(k, v);
+    } catch {
+      // Storage blocked: the session lasts until the page closes.
+    }
+  },
+  removeItem(k: string): void {
+    try {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    } catch {
+      // Nothing stored.
+    }
+  },
+};
 const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const cloudConfigured = !!(url && key);
@@ -27,6 +75,7 @@ export function loadSupabase(): Promise<SupabaseClient> | null {
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
+        storage: authStorage,
       },
     });
     // Listen now: a reset link is handled while the client starts, which can
