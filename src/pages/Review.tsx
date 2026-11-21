@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Settings, ThemeColors, VisibilitySettings, VocabItem } from '../types';
 import type { DailyProgress } from '../hooks/useDailyProgress';
@@ -8,7 +8,9 @@ import { contrastText } from '../lib/color';
 import ChoiceQuiz from '../components/ChoiceQuiz';
 import Examples from '../components/Examples';
 import TypingQuiz from '../components/TypingQuiz';
-import { chooseExercise } from '../lib/quiz';
+import MeetCard from '../components/MeetCard';
+import { chooseRound } from '../lib/quiz';
+import { cardText as cardAsText, copyText } from '../lib/clipboard';
 import { stageOf, STAGE_INFO } from '../lib/stats';
 import { dayNumber, type StudyPlan } from '../lib/plan';
 import { useShortcuts } from '../hooks/useShortcuts';
@@ -46,17 +48,26 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
   const planDay = plan ? dayNumber(plan.startDay, new Date()) : 0;
   const { current, revealed, reveal, answer, undo, canUndo } = session;
   const quiz = settings.answerMode === 'quiz';
-  const exercise =
-    quiz && current ? chooseExercise(session.currentCard, { canListen, canType: settings.typeAnswers }) : null;
+  // A brand-new word is taught on its "New word" card before its first test.
+  const meeting = quiz && !!current && session.isNew && !session.isMet;
+  const round =
+    quiz && current && !meeting
+      ? chooseRound(session.currentCard, { canListen, canType: settings.typeAnswers, hasSound: !!current.rom })
+      : null;
+  const exercise = round?.exercise ?? null;
 
   // Speak the word when a new card appears, unless the audio would give the answer away.
-  const speakOnShow = settings.autoSpeak && exercise !== 'type' && exercise !== 'listen';
+  const speakOnShow = settings.autoSpeak && !meeting && (exercise === null || exercise === 'choice');
   useEffect(() => {
     if (current && speakOnShow) speak(current.ko);
   }, [current, speakOnShow, speak]);
 
-  // Quiz cards handle their own answer, continue and audio keys; this covers
-  // undo, and every key of the flip card.
+  // Flip cards: X shows the answer and marks the card Again on the next Space.
+  const [dontKnow, setDontKnow] = useState(false);
+  useEffect(() => setDontKnow(false), [session.cardKey]);
+
+  // Quiz cards handle their own answer, continue, audio and copy keys; this
+  // covers undo, and every key of the flip card.
   useShortcuts((s) => {
     if (paused) return false;
     if (s.type === 'undo') {
@@ -64,20 +75,28 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
       return true;
     }
     if (!current || quiz) return false;
-    if (s.type === 'speak') {
-      speak(current.ko);
-      return true;
+    switch (s.type) {
+      case 'speak':
+        speak(current.ko);
+        return true;
+      case 'copy':
+        copyText(cardAsText(current, revealed ? 'full' : 'korean'));
+        return true;
+      case 'dontKnow':
+        setDontKnow(true);
+        reveal();
+        return true;
+      case 'primary':
+        if (revealed) answer(dontKnow ? 1 : 3);
+        else reveal();
+        return true;
+      case 'answer':
+        if (!revealed) return false;
+        answer(s.n as Grade);
+        return true;
+      default:
+        return false;
     }
-    if (s.type === 'primary') {
-      if (revealed) answer(3);
-      else reveal();
-      return true;
-    }
-    if (s.type === 'answer' && revealed) {
-      answer(s.n as Grade);
-      return true;
-    }
-    return false;
   });
 
   if (session.loading) {
@@ -143,7 +162,7 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
         <button
           onClick={undo}
           disabled={!canUndo}
-          title="Undo last answer (U)"
+          title="Undo last answer (Z or U)"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 font-black text-[9px] tracking-widest border border-black/5 disabled:opacity-30 enabled:hover:bg-white transition-all"
         >
           <i className="bi bi-arrow-counterclockwise"></i>
@@ -160,7 +179,18 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
         </p>
       )}
 
-      {current && exercise === 'type' ? (
+      {current && meeting ? (
+        <MeetCard
+          key={session.cardKey}
+          word={current}
+          visibility={visibility}
+          cardBg={settings.cardBg}
+          badge={badge}
+          speak={speak}
+          onGotIt={session.meet}
+          paused={paused}
+        />
+      ) : current && exercise === 'type' ? (
         <TypingQuiz
           key={session.cardKey}
           word={current}
@@ -172,12 +202,17 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
           onDisableTyping={() => setSettings((prev) => ({ ...prev, typeAnswers: false }))}
           paused={paused}
         />
-      ) : current && (exercise === 'choice' || exercise === 'listen') ? (
+      ) : current && round && (exercise === 'choice' || exercise === 'listen' || exercise === 'reverse') ? (
         <ChoiceQuiz
           key={session.cardKey}
           mode={exercise}
+          phase={round.phase}
           word={current}
           pool={vocab}
+          studied={session.studied}
+          // The very first test of a word always shows its answer.
+          allowMissing={!session.isNew}
+          canListen={canListen}
           visibility={visibility}
           cardBg={settings.cardBg}
           badge={badge}
@@ -223,7 +258,7 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
               </div>
             ) : (
               <p className="mt-10 text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
-                Recall the meaning, then tap
+                Recall the meaning, then tap · X if you don't know
               </p>
             )}
           </div>
@@ -260,15 +295,19 @@ const Review: React.FC<ReviewProps> = ({ daily, vocab, settings, setSettings, vi
 
       {current && (
         <p className="hidden md:flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-[9px] font-black uppercase tracking-[0.2em] opacity-60">
-          {exercise === 'type' ? (
-            <span>Enter check · Esc don't know · Space next</span>
+          {meeting ? (
+            <span>Space got it</span>
+          ) : exercise === 'type' ? (
+            <span>Enter check · Enter on empty: don't know · Space next</span>
+          ) : exercise === 'reverse' ? (
+            <span>A S D F pick · N not in list · X don't know · Space next</span>
           ) : quiz ? (
-            <span>A S D F pick · Space next</span>
+            <span>Space I know it · X don't know · A S D F pick · N not in list</span>
           ) : (
-            <span>Space show / good · A S D F rate</span>
+            <span>Space show / good · X don't know · A S D F rate</span>
           )}
           <span>J word · K L sentences</span>
-          <span>U undo</span>
+          <span>Z undo · C copy</span>
           <button onClick={openShortcutList} className="underline underline-offset-2 hover:opacity-100 uppercase tracking-[0.2em]">
             ? all keys
           </button>

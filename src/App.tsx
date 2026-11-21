@@ -19,6 +19,7 @@ import { CloudProvider, useCloud } from './hooks/useCloud';
 import { useVocab } from './hooks/useVocab';
 import { isStudyPlan, planWordIds, type StudyPlan } from './lib/plan';
 import { loadJson, saveJson } from './lib/storage';
+import { onToast } from './lib/clipboard';
 
 const DEFAULT_SETTINGS: Settings = {
   voiceName: '',
@@ -39,10 +40,10 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const NAV = [
-  { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review', key: 'H' },
-  { to: '/plan', icon: 'bi-calendar2-check-fill', label: 'Plan', key: 'P' },
-  { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats', key: 'G' },
-  { to: '/browse', icon: 'bi-card-text', label: 'Browse', key: 'B' },
+  { to: '/', icon: 'bi-lightning-charge-fill', label: 'Review', key: 'Alt+1' },
+  { to: '/plan', icon: 'bi-calendar2-check-fill', label: 'Plan', key: 'Alt+2' },
+  { to: '/stats', icon: 'bi-bar-chart-fill', label: 'Stats', key: 'Alt+3' },
+  { to: '/browse', icon: 'bi-card-text', label: 'Browse', key: 'Alt+4' },
   { to: '/contact', icon: 'bi-person-lines-fill', label: 'Contact', key: '' },
 ];
 
@@ -58,6 +59,32 @@ const GlobalShortcuts: React.FC<{ onSettings: () => void; onHelp: () => void }> 
   });
   useEffect(() => onShortcutListRequest(onHelp), [onHelp]);
   return null;
+};
+
+/** Short notes such as "Copied", shown at the bottom of the screen for a moment. */
+const Toast: React.FC = () => {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: number | undefined;
+    const off = onToast((t) => {
+      setText(t);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setText(null), 1500);
+    });
+    return () => {
+      off();
+      window.clearTimeout(timer);
+    };
+  }, []);
+  if (!text) return null;
+  return (
+    <div
+      role="status"
+      className="fixed top-20 left-1/2 -translate-x-1/2 z-[90] px-4 py-2 rounded-full bg-gray-900/90 text-white text-xs font-black tracking-wide shadow-lg pointer-events-none"
+    >
+      {text}
+    </div>
+  );
 };
 
 /** Day streak plus today's progress toward the daily goal. */
@@ -162,7 +189,7 @@ const App: React.FC = () => {
                 >
                   <i className="bi bi-keyboard text-xl"></i>
                 </button>
-                <button onClick={openSettings} title="Settings (,)" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
+                <button onClick={openSettings} title="Settings (Alt+5)" aria-label="Settings" className="px-2 sm:px-3 py-2 rounded-xl hover:bg-black/5 transition-all">
                   <i className="bi bi-gear-fill text-xl"></i>
                 </button>
               </nav>
@@ -222,6 +249,7 @@ const App: React.FC = () => {
           {!isFullScreen && <Footer theme={currentTheme} />}
 
           {isHelpOpen && <ShortcutHelp onClose={closeHelp} />}
+          <Toast />
 
           {isSettingsOpen && (
             <SettingsPanel

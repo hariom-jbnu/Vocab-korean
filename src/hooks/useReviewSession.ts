@@ -5,6 +5,11 @@ import { buildDailyQueue, countNewToday, pickNext, seededShuffle } from '../lib/
 import { todaysNewTarget, type StudyPlan } from '../lib/plan';
 import { endOfStudyDay, startOfStudyDay } from '../lib/day';
 import { createScheduler, newCard, previewDue, rate, Rating, State, type Grade, type WordCard } from '../lib/srs';
+import { adjustCard, finalGrade, type AnswerMeta } from '../lib/answerPolicy';
+import { productionMisses, setProductionMisses } from '../lib/quizHistory';
+
+/** A word met on its "New word" card comes back for its first test after this many other cards. */
+export const MEET_GAP = 3;
 
 interface UndoEntry {
   wordId: string;
@@ -14,6 +19,8 @@ interface UndoEntry {
   learning: Map<string, Date>;
   wasNew: boolean;
   grade: Grade;
+  /** Production misses in a row before this answer. */
+  missStreak: number;
 }
 
 export interface SessionStats {
@@ -56,6 +63,8 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const [newDoneToday, setNewDoneToday] = useState(0);
   const [newTarget, setNewTarget] = useState(newPerDay);
   const [reloadKey, setReloadKey] = useState(0);
+  // New words already shown on their "New word" card in this session.
+  const [met, setMet] = useState<Set<string>>(new Set());
   const busy = useRef(false);
   const order = plan && planOrder && planOrder.length > 0 ? planOrder : null;
   const answeredRef = useRef(0);
@@ -151,20 +160,19 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
   const reveal = useCallback(() => setRevealed(true), []);
 
   const answer = useCallback(
-    async (grade: Grade, durationMs?: number) => {
+    async (grade: Grade, durationMs?: number, meta?: AnswerMeta) => {
       if (!currentId || busy.current) return;
       busy.current = true;
       try {
         const now = new Date();
         const previous = cards.current.get(currentId);
         const wasNew = !previous || previous.state === State.New;
-        const { card, record } = rate(
-          scheduler,
-          previous ?? newCard(currentId, now),
-          grade,
-          now,
-          durationMs ?? now.getTime() - shownAt
-        );
+        const missStreak = productionMisses(currentId);
+        const final = finalGrade(grade, meta, missStreak);
+        const rated = rate(scheduler, previous ?? newCard(currentId, now), final.grade, now, durationMs ?? now.getTime() - shownAt);
+        const card = adjustCard(rated.card, meta, final, now);
+        const record = rated.record;
+        if (final.missStreak !== missStreak) setProductionMisses(currentId, final.missStreak);
 
         let recordId: number | null = null;
         try {
@@ -177,15 +185,19 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
         const nextQueue = queue.filter((id) => id !== currentId);
         const nextLearning = new Map(learning);
         nextLearning.delete(currentId);
-        if (isLearning(card) && card.due.getTime() < endOfStudyDay(now).getTime()) {
+        // Learning steps and retries due later today come back in this session.
+        if (card.due.getTime() < endOfStudyDay(now).getTime()) {
           nextLearning.set(currentId, card.due);
         }
 
-        setUndoStack((s) => [...s.slice(-49), { wordId: currentId, previous, recordId, queue, learning, wasNew, grade }]);
+        setUndoStack((s) => [
+          ...s.slice(-49),
+          { wordId: currentId, previous, recordId, queue, learning, wasNew, grade: final.grade, missStreak },
+        ]);
         setStats((s) => ({
           answered: s.answered + 1,
           newLearned: s.newLearned + (wasNew ? 1 : 0),
-          again: s.again + (grade === Rating.Again ? 1 : 0),
+          again: s.again + (final.grade === Rating.Again ? 1 : 0),
         }));
         if (wasNew) setNewDoneToday((n) => n + 1);
         setQueue(nextQueue);
@@ -212,6 +224,7 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
       }
       if (last.previous) cards.current.set(last.wordId, last.previous);
       else cards.current.delete(last.wordId);
+      setProductionMisses(last.wordId, last.missStreak);
       setUndoStack((s) => s.slice(0, -1));
       setStats((s) => ({
         answered: s.answered - 1,
@@ -226,6 +239,28 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
       busy.current = false;
     }
   }, [undoStack, show]);
+
+  /**
+   * "Got it" on a new word's card: not graded; the word moves a few cards back
+   * in the queue and returns as its first test.
+   */
+  const meet = useCallback(() => {
+    if (!currentId) return;
+    setMet((m) => new Set(m).add(currentId));
+    const rest = queue.filter((id) => id !== currentId);
+    const at = Math.min(MEET_GAP, rest.length);
+    const nextQueue = [...rest.slice(0, at), currentId, ...rest.slice(at)];
+    setQueue(nextQueue);
+    show(pickNext(nextQueue, learning, new Date()));
+  }, [currentId, queue, learning, show]);
+
+  /** Words already studied, for wrong options that look familiar. */
+  const studied = useMemo(() => {
+    const ids = new Set<string>();
+    for (const c of cards.current.values()) if (c.state !== State.New) ids.add(c.id);
+    return ids;
+    // cards is a ref: recompute whenever a card is shown.
+  }, [shownAt, loading]);
 
   /** Add more new words to today's session beyond the daily limit. */
   const learnMore = useCallback(
@@ -273,6 +308,10 @@ export function useReviewSession(words: readonly VocabItem[], { newPerDay, reten
     cardKey: shownAt,
     currentCard,
     isNew,
+    /** The current new word was already shown on its "New word" card. */
+    isMet: !!currentId && met.has(currentId),
+    meet,
+    studied,
     revealed,
     reveal,
     answer,

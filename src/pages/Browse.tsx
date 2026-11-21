@@ -6,7 +6,8 @@ import { contrastText } from '../lib/color';
 import Examples from '../components/Examples';
 import { openShortcutList } from '../components/ShortcutHelp';
 import { useShortcuts } from '../hooks/useShortcuts';
-import { isFullscreenKey, numberKey } from '../lib/shortcuts';
+import { keyLabel } from '../lib/shortcuts';
+import { cardText, copyText } from '../lib/clipboard';
 
 interface BrowseProps {
   vocab: VocabItem[];
@@ -29,15 +30,16 @@ const PARTS: { key: keyof VisibilitySettings; name: string }[] = [
 
 /** The keys shown under the card, and along the bottom in full screen. */
 const HINTS: { keys: string[]; label: string }[] = [
-  { keys: ['←', '→'], label: 'words' },
-  { keys: ['J'], label: 'word' },
-  { keys: ['K', 'L'], label: 'sentences' },
-  { keys: ['1', '2', '3', '4'], label: 'show / hide' },
-  { keys: ['N'], label: 'number' },
-  { keys: ['M'], label: 'shuffle' },
-  { keys: ['V'], label: 'auto-play' },
-  { keys: ['C'], label: 'color' },
-  { keys: ['F'], label: 'full screen' },
+  { keys: [keyLabel('prev'), keyLabel('next')], label: 'words' },
+  { keys: [keyLabel('speak')], label: 'word' },
+  { keys: [keyLabel('example'), 'L'], label: 'sentences' },
+  { keys: ['Shift+1–4'], label: 'show / hide' },
+  { keys: [keyLabel('jump')], label: 'number' },
+  { keys: [keyLabel('shuffle')], label: 'shuffle' },
+  { keys: [keyLabel('autoplay')], label: 'auto-play' },
+  { keys: [keyLabel('color')], label: 'color' },
+  { keys: [keyLabel('copy')], label: 'copy' },
+  { keys: [keyLabel('fullscreen')], label: 'full screen' },
 ];
 
 const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -141,10 +143,9 @@ const Browse: React.FC<BrowseProps> = ({
     jumpRef.current?.select();
   };
 
-  useShortcuts((s, e) => {
+  useShortcuts((s) => {
     if (vocab.length === 0) return false;
-    // F is answer 4 in study; here it is full screen.
-    if (isFullscreenKey(e)) toggleFullScreen();
+    if (s.type === 'fullscreen') toggleFullScreen();
     else if (s.type === 'next' || s.type === 'primary') handleNext();
     else if (s.type === 'prev') handlePrev();
     else if (s.type === 'speak') speak(vocab[currentIndex].ko);
@@ -154,7 +155,8 @@ const Browse: React.FC<BrowseProps> = ({
     else if (s.type === 'shuffle') toggleShuffle();
     else if (s.type === 'autoplay') toggleAutoPlay();
     else if (s.type === 'color') nextColor();
-    else if (s.type === 'answer' && numberKey(e)) togglePart(numberKey(e)!);
+    else if (s.type === 'toggle') togglePart(s.n);
+    else if (s.type === 'copy') copyText(cardText(vocab[currentIndex], 'full'));
     else return false;
     return true;
   });
@@ -165,7 +167,7 @@ const Browse: React.FC<BrowseProps> = ({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, [setIsFullScreen]);
 
-  // Leaving Browse (H, P, G or B in full screen) also leaves full screen.
+  // Leaving Browse (Alt+1 to Alt+4 in full screen) also leaves full screen.
   useEffect(
     () => () => {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -232,8 +234,8 @@ const Browse: React.FC<BrowseProps> = ({
         defaultValue={currentIndex + 1}
         key={currentIndex}
         aria-label="Word number"
-        title="Go to a word number (N)"
-        aria-keyshortcuts="N"
+        title="Go to a word number (/)"
+        aria-keyshortcuts="/"
         onKeyDown={(e) => {
           if (e.key === 'Escape') e.currentTarget.blur();
         }}
@@ -292,8 +294,8 @@ const Browse: React.FC<BrowseProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={toggleFullScreen}
-              title="Full screen (F)"
-              aria-keyshortcuts="F"
+              title="Full screen (Shift+F or F11)"
+              aria-keyshortcuts="Shift+F F11"
               className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/80 text-gray-800 font-black hover:bg-white transition-all text-[9px] shadow-sm border border-black/5"
             >
               <i className="bi bi-arrows-fullscreen"></i>
@@ -301,8 +303,8 @@ const Browse: React.FC<BrowseProps> = ({
             </button>
             <button
               onClick={onOpenSettings}
-              title="Settings (,)"
-              aria-keyshortcuts=","
+              title="Settings (Alt+5)"
+              aria-keyshortcuts="Alt+5"
               className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/80 text-gray-800 font-black hover:bg-white transition-all text-[9px] shadow-sm border border-black/5"
             >
               <i className="bi bi-gear-fill"></i>
@@ -348,7 +350,7 @@ const Browse: React.FC<BrowseProps> = ({
                     e.stopPropagation();
                     toggleFullScreen();
                   }}
-                  title="Leave full screen (F or Esc)"
+                  title="Leave full screen (Shift+F or Esc)"
                   aria-label="Leave full screen"
                   className="w-9 h-9 rounded-xl bg-black/10 hover:bg-black/20 flex items-center justify-center text-base"
                 >
