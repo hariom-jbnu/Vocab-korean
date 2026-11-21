@@ -1,9 +1,11 @@
+/// <reference types="vitest/config" />
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { configDefaults } from 'vitest/config';
 
 /** Files in public/ that the app needs offline. */
 const PUBLIC_FILES = ['manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
@@ -47,5 +49,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  // platform/ is a separate app with its own dependencies and tests.
+  test: {
+    exclude: [...configDefaults.exclude, 'platform/**'],
   },
 });
