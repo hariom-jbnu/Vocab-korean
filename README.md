@@ -12,6 +12,8 @@ Learn Korean vocabulary with active recall and spaced repetition, with Hindi and
 
 ---
 
+> **New: multi-creator platform prototype.** The [`platform/`](platform/) folder holds a local-first prototype where any teacher can make decks in any language, share them with a 4-character code, and set rules for words, reading, listening and writing. See [platform/README.md](platform/README.md) to run it.
+
 ## Overview
 
 Vocab Korean helps you remember Korean words, not just read them. Set a goal such as **2,000 words in 30 days** and the planner lays out Day 1 to Day 30: new words each day plus the reviews that are due. Every word comes with two Korean example sentences and their Hindi translation. Each word is shown in Korean first and you answer a short question about it: pick the meaning, pick it by ear, or type the word in Hangul. The app grades the answer itself, and a spaced repetition scheduler (FSRS) brings every word back just before you would forget it.

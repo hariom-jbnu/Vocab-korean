@@ -1,0 +1,49 @@
+{
+  "name": "vocab-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local-first, multi-creator, multi-language vocabulary and skills practice platform.",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch --clear-screen=false src/server/index.ts",
+    "dev:web": "vite",
+    "seed": "tsx src/server/seed.ts",
+    "reset": "tsx src/server/reset.ts",
+    "build": "tsc --noEmit && vite build",
+    "start": "NODE_ENV=production tsx src/server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.19",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.19",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0",
+    "ts-fsrs": "^5.4.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^9.2.5",
+    "drizzle-kit": "^0.31.11",
+    "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.8",
+    "vitest": "^5.1.1"
+  }
+}

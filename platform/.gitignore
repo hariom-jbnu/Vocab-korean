@@ -1,0 +1,7 @@
+node_modules
+dist
+# Local database and uploaded files
+.data
+.env
+.env.local
+*.log
