@@ -51,8 +51,8 @@ const ShortcutHelp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           Keyboard shortcuts
         </h2>
         <p className="text-sm text-gray-500 mb-6">
-          Left hand on <b>A S D F</b> to answer, right hand on <b>J K L</b> to listen, thumb on <b>Space</b> to go on. Keys work with
-          the Korean keyboard on too.
+          Left hand on <b>A S D F</b> to answer and <b>X</b> for "I don't know", right hand on <b>J K L</b> to listen, thumb on{' '}
+          <b>Space</b> to go on. Keys work with the Korean keyboard on too, and never while you type in a box.
         </p>
         <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
           {SHORTCUT_GROUPS.map((group) => (
@@ -62,14 +62,19 @@ const ShortcutHelp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 {group.items.map((item) => (
                   <li key={item.label} className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-gray-700">{item.label}</span>
-                    <span className="flex gap-1 shrink-0">
-                      {item.keys.map((k) => (
-                        <kbd
-                          key={k}
-                          className="min-w-7 h-7 px-1.5 rounded-lg bg-gray-100 border border-black/10 border-b-2 text-xs font-black text-gray-800 flex items-center justify-center"
-                        >
-                          {k}
-                        </kbd>
+                    <span className="flex flex-wrap justify-end items-center gap-1 shrink-0 max-w-[55%]">
+                      {item.keys.map((alt, i) => (
+                        <React.Fragment key={alt.join(' ')}>
+                          {i > 0 && <span className="text-[10px] font-bold text-gray-400 px-0.5">or</span>}
+                          {alt.map((key) => (
+                            <kbd
+                              key={key}
+                              className="min-w-7 h-7 px-1.5 rounded-lg bg-gray-100 border border-black/10 border-b-2 text-xs font-black text-gray-800 flex items-center justify-center whitespace-nowrap"
+                            >
+                              {key}
+                            </kbd>
+                          ))}
+                        </React.Fragment>
                       ))}
                     </span>
                   </li>

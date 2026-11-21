@@ -4,6 +4,8 @@ import { gradeTyped, meaningLines } from '../lib/quiz';
 import { checkTyped, type TypedCheck } from '../lib/hangul';
 import { contrastText } from '../lib/color';
 import type { Grade } from '../lib/srs';
+import type { AnswerMeta } from '../lib/answerPolicy';
+import { cardText, copyText } from '../lib/clipboard';
 import Examples from './Examples';
 import { useShortcuts } from '../hooks/useShortcuts';
 
@@ -13,7 +15,7 @@ interface TypingQuizProps {
   cardBg: string;
   badge: React.ReactNode;
   speak: (text: string) => void;
-  onAnswer: (grade: Grade, durationMs: number) => void;
+  onAnswer: (grade: Grade, durationMs: number, meta: AnswerMeta) => void;
   onDisableTyping: () => void;
   paused: boolean;
 }
@@ -24,10 +26,14 @@ const BLOCK_COLORS = {
   missing: 'text-rose-600 opacity-50',
 };
 
-/** See the meaning, type the Korean word. Shows which syllable was wrong. */
+/**
+ * See the meaning, type the Korean word. Shows which syllable was wrong.
+ * Enter with nothing typed means "I don't know".
+ */
 const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge, speak, onAnswer, onDisableTyping, paused }) => {
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<TypedCheck | null>(null);
+  const [gaveUp, setGaveUp] = useState(false);
   const startedAt = useRef(Date.now());
   const answeredAfter = useRef(0);
   const sent = useRef(false);
@@ -40,6 +46,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
   const check = (giveUp = false) => {
     if (result) return;
     answeredAfter.current = Date.now() - startedAt.current;
+    setGaveUp(giveUp);
     setResult(giveUp ? checkTyped(word.ko, '') : checkTyped(word.ko, typed));
     speak(word.ko);
   };
@@ -47,12 +54,17 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
   const next = () => {
     if (!result || sent.current) return;
     sent.current = true;
-    onAnswer(gradeTyped(result, answeredAfter.current), answeredAfter.current);
+    const outcome = result.correct ? 'right' : result.nearMiss ? 'near' : gaveUp ? 'dontKnow' : 'wrong';
+    onAnswer(gradeTyped(result, answeredAfter.current), answeredAfter.current, { phase: 'production', outcome });
   };
 
   // The word's sound would give the answer away, so it plays only after checking.
   useShortcuts((s) => {
     if (paused || !result) return false;
+    if (s.type === 'copy') {
+      copyText(cardText(word, 'full'));
+      return true;
+    }
     if (s.type === 'primary') {
       next();
       return true;
@@ -98,10 +110,13 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
 
       {result ? (
         <>
-          {typed && !result.correct && (
+          {typed && !gaveUp && !result.correct && (
             <p className="text-center text-sm font-bold opacity-70">
               You typed <span lang="ko" className="font-black">{typed}</span>
             </p>
+          )}
+          {!result.correct && !result.nearMiss && (
+            <p className="text-center text-sm font-bold opacity-70">It comes back in about 10 minutes for another try.</p>
           )}
           <Examples word={word} speak={speak} className="animate-fadeIn" />
           <button
@@ -117,7 +132,8 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
           className="flex flex-col sm:flex-row gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (typed.trim()) check();
+            // Enter with nothing typed: "I don't know".
+            check(!typed.trim());
           }}
         >
           <input
@@ -128,10 +144,6 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
             onKeyDown={(e) => {
               // Korean keyboards compose syllables; wait until the block is finished.
               if (e.key === 'Enter' && e.nativeEvent.isComposing) e.preventDefault();
-              if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                check(true);
-              }
             }}
             autoComplete="off"
             autoCorrect="off"
@@ -152,7 +164,7 @@ const TypingQuiz: React.FC<TypingQuizProps> = ({ word, visibility, cardBg, badge
               className="flex-1 sm:flex-none px-4 py-4 rounded-2xl bg-white/80 text-gray-700 font-black text-xs tracking-widest uppercase hover:bg-white border border-black/5"
             >
               I don't know
-              <kbd className="hidden md:inline ml-2 text-[9px] bg-black/5 px-1.5 py-0.5 rounded">Esc</kbd>
+              <kbd className="hidden md:inline ml-2 text-[9px] bg-black/5 px-1.5 py-0.5 rounded">Enter, empty</kbd>
             </button>
           </div>
         </form>

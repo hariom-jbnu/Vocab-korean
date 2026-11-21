@@ -37,7 +37,8 @@ Built for:
 - **Study plan**: choose how many words (up to 2,000) and in how many days; the app builds a Day 1 … Day N schedule with new words, estimated reviews and minutes per day, warns when a plan is too heavy, and re-balances if you miss a day
 - **2,000 words with examples**: about 1,000 words from the study images plus 1,000 common everyday words, each with romanization and two Korean example sentences with Hindi translations (tap to hear them)
 - **Daily review**: due words first, then today's new words from the plan
-- **Quiz rounds that get harder as you learn**: multiple choice for new words, a listening round once a word sticks, and typing in Hangul for words you know well
+- **Recall first, then check**: a new word is taught on a "New word" card before its first test; choices stay hidden until you say you know the word; about one question in five leaves the answer out ("Not in the list"); wrong options come from words you have studied that look, sound or mean nearly the same
+- **Rounds that change as you learn**: Korean to meaning, then a mix of meaning to Korean, listening and Korean to meaning, then typing in Hangul
 - **Automatic grading** from correctness and answer time, so there is nothing to self-rate
 - **Hangul feedback**: typed answers are checked letter by letter and a one-letter slip counts as a near miss
 - **Flip cards** with Again / Hard / Good / Easy buttons, if you prefer rating yourself
@@ -55,27 +56,36 @@ Built for:
 
 ### Keyboard shortcuts
 
-Everything works from the keyboard: left hand on `A S D F` to answer, right hand on `J K L` to listen, thumb on `Space`. Keys go by their position, so they work with the Korean keyboard layout on. Press `?` in the app for the full list.
+Everything works from the keyboard: left hand on `A S D F` to answer and `X` for "I don't know", right hand on `J K L` to listen, thumb on `Space`. Keys go by their position, so they work with the Korean keyboard layout on, and they never fire while you type in a box. No key means two things; the list lives in `src/lib/shortcuts.ts`, and the `?` sheet in the app is built from it.
 
 | Key | Action |
 |---|---|
-| `Space` / `Enter` | Show answer, continue, next card |
-| `A` `S` `D` `F` (or `1` `2` `3` `4`) | Pick choice 1–4 in the quiz, or Again / Hard / Good / Easy on flip cards |
-| `J` (or `R`) | Play the word again |
+| `Space` / `Enter` | Show choices ("I know it"), show the answer, next card |
+| `X` / `Backspace` | I don't know: show the answer, mark Again |
+| `1` `2` `3` `4` or `A` `S` `D` `F` | Pick choice 1–4, or Again / Hard / Good / Easy on flip cards |
+| `5` / `N` | Not in the list |
+| `Z` / `U` | Undo the last answer |
+| `C` | Copy the card text |
+| `J` / `R` | Play the word |
 | `K` / `L` | Play example sentence 1 / 2 |
-| `Esc` | Typing round: "I don't know"; closes settings and the shortcut list |
-| `U` / `Ctrl+Z` | Undo the last answer |
-| `←` `→` | Previous / next word in Browse (`Space` also goes next) |
-| `F` | Full screen in Browse |
-| `H` `P` `G` `B` | Go to Review, Plan, Stats, Browse |
-| `,` / `?` | Open settings / the shortcut list |
+| `Alt+1` … `Alt+4` | Go to Review, Plan, Stats, Browse |
+| `Alt+5` / `?` | Open settings / the shortcut list |
+| `Esc` | Close a dialog, leave full screen |
 
----|---|
-| `1` `2` `3` `4` | Pick a choice in the quiz, or Again / Hard / Good / Easy on flip cards |
-| `Space` / `Enter` | Continue after a quiz answer; on flip cards, show answer then rate Good |
-| `R` | Play audio |
-| `U` | Undo last answer |
-| `←` `→` | Previous / next card in Browse |
+In the typing round, press `Enter` with nothing typed for "I don't know".
+
+In **Browse**, and the same in full screen:
+
+| Key | Action |
+|---|---|
+| `←` `→` | Previous / next word (`Space` also goes next) |
+| `Home` / `End` | First / last word |
+| `/` | Go to a word number (type it, then `Enter`) |
+| `Shift+1` … `Shift+4` | Show or hide Korean, English, Hindi, the sentences |
+| `M` | Shuffle (random order) on or off |
+| `V` | Auto-play each word on or off |
+| `Shift+C` | Next card color |
+| `Shift+F` / `F11` | Full screen on or off |
 
 ---
 
@@ -83,8 +93,8 @@ Everything works from the keyboard: left hand on `A S D F` to answer, right hand
 
 1. Every word starts as **new**. With a plan, the words still to learn are shared out over the days left; without one, you see up to *N* new words a day (10 by default).
 2. After each answer, FSRS updates the word's **stability** and **difficulty** and picks the next review date so that your chance of remembering it is about your target recall (90% by default).
-3. The question gets harder as a word gets more stable: multiple choice at first, listening from about 3 days, typing from about 3 weeks.
-4. Answers are graded automatically. A wrong answer is "Again", a slow or nearly right one is "Hard", a quick typed answer is "Easy".
+3. The question changes as a word gets more stable: Korean to meaning (recall first) while learning and under 2 days; a rotation of meaning to Korean, listening (or reading the sound when the browser has no Korean voice) and Korean to meaning from 2 to 7 days; typing from 7 days (meaning to Korean when typing is off). A recognition round never schedules more than 7 days ahead, so long gaps need the word to be produced.
+4. Grading: "I don't know" or a wrong pick is Again, and saying "I know it" before a wrong pick also makes the word harder. Slow recall (over 6 s) or a slow pick (over 8 s) is Hard; otherwise Good. Only typing gives Easy. A first miss at typing is graded Hard and the word returns in 10 minutes, so recognition strength is kept; a second miss in a row is Again.
 5. Words you miss come back within the same session; words you know well come back days or months later.
 6. Every answer is kept in an append-only log, so the schedule can be re-tuned later without losing progress.
 7. A study day rolls over at 4 a.m., so a late-night session still counts for that day.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFullscreenKey, readShortcut, SHORTCUT_GROUPS } from './shortcuts';
+import { BINDINGS, keyLabel, keyOwners, readShortcut, SHORTCUT_GROUPS } from './shortcuts';
 
 const key = (code: string, extra: Partial<KeyboardEvent> & { isComposing?: boolean } = {}) => ({
   code,
@@ -11,69 +11,100 @@ const key = (code: string, extra: Partial<KeyboardEvent> & { isComposing?: boole
   ...extra,
 });
 
-describe('readShortcut', () => {
-  it('answers with the home row or the number keys', () => {
-    expect(readShortcut(key('KeyA'))).toEqual({ type: 'answer', n: 1 });
-    expect(readShortcut(key('KeyF'))).toEqual({ type: 'answer', n: 4 });
-    expect(readShortcut(key('Digit3'))).toEqual({ type: 'answer', n: 3 });
-    expect(readShortcut(key('Numpad2'))).toEqual({ type: 'answer', n: 2 });
+describe('BINDINGS', () => {
+  it('gives every key press exactly one meaning', () => {
+    const clashes = [...keyOwners()].filter(([, owners]) => owners.length > 1).map(([sig]) => sig);
+    expect(clashes).toEqual([]);
   });
 
-  it('plays the word and each sentence from J K L', () => {
-    expect(readShortcut(key('KeyJ'))).toEqual({ type: 'speak' });
+  it('never uses Esc, G or bare F for a study action', () => {
+    expect(readShortcut(key('Escape'))).toBeNull();
+    expect(readShortcut(key('KeyG'))).toBeNull();
+    expect(readShortcut(key('KeyF'))).toEqual({ type: 'answer', n: 4 });
+  });
+});
+
+describe('readShortcut', () => {
+  it('shows choices, goes on, and says "I don\'t know"', () => {
+    expect(readShortcut(key('Space'))).toEqual({ type: 'primary' });
+    expect(readShortcut(key('Enter'))).toEqual({ type: 'primary' });
+    expect(readShortcut(key('KeyX'))).toEqual({ type: 'dontKnow' });
+    expect(readShortcut(key('Backspace'))).toEqual({ type: 'dontKnow' });
+  });
+
+  it('answers with the number keys or the home row, and N or 5 for "Not in the list"', () => {
+    expect(readShortcut(key('Digit1'))).toEqual({ type: 'answer', n: 1 });
+    expect(readShortcut(key('KeyS'))).toEqual({ type: 'answer', n: 2 });
+    expect(readShortcut(key('Numpad3'))).toEqual({ type: 'answer', n: 3 });
+    expect(readShortcut(key('KeyN'))).toEqual({ type: 'notInList' });
+    expect(readShortcut(key('Digit5'))).toEqual({ type: 'notInList' });
+  });
+
+  it('undoes with Z, U or Ctrl+Z, and copies with C', () => {
+    expect(readShortcut(key('KeyZ'))).toEqual({ type: 'undo' });
+    expect(readShortcut(key('KeyU'))).toEqual({ type: 'undo' });
+    expect(readShortcut(key('KeyZ', { ctrlKey: true }))).toEqual({ type: 'undo' });
+    expect(readShortcut(key('KeyC'))).toEqual({ type: 'copy' });
+  });
+
+  it('plays the word and each sentence from J K L, also with the Korean layout on', () => {
+    expect(readShortcut(key('KeyJ', { key: 'ㅓ' }))).toEqual({ type: 'speak' });
     expect(readShortcut(key('KeyR'))).toEqual({ type: 'speak' });
     expect(readShortcut(key('KeyK'))).toEqual({ type: 'example', n: 1 });
     expect(readShortcut(key('KeyL'))).toEqual({ type: 'example', n: 2 });
   });
 
-  it('reads the physical key, so a Korean layout gives the same result', () => {
-    // With the Korean layout on, the J key types ㅓ.
-    expect(readShortcut(key('KeyJ', { key: 'ㅓ' }))).toEqual({ type: 'speak' });
+  it('uses Shift for the Browse keys that look like study keys', () => {
+    expect(readShortcut(key('KeyF', { shiftKey: true }))).toEqual({ type: 'fullscreen' });
+    expect(readShortcut(key('F11'))).toEqual({ type: 'fullscreen' });
+    expect(readShortcut(key('Digit2', { shiftKey: true }))).toEqual({ type: 'toggle', n: 2 });
+    expect(readShortcut(key('KeyC', { shiftKey: true }))).toEqual({ type: 'color' });
+    expect(readShortcut(key('Slash'))).toEqual({ type: 'jump' });
+    expect(readShortcut(key('Home'))).toEqual({ type: 'first' });
+    expect(readShortcut(key('ArrowRight'))).toEqual({ type: 'next' });
   });
 
-  it('goes on with Space or Enter, undoes with U or Ctrl+Z', () => {
-    expect(readShortcut(key('Space', { key: ' ' }))).toEqual({ type: 'primary' });
-    expect(readShortcut(key('Enter', { key: 'Enter' }))).toEqual({ type: 'primary' });
-    expect(readShortcut(key('KeyU'))).toEqual({ type: 'undo' });
-    expect(readShortcut(key('KeyZ', { ctrlKey: true }))).toEqual({ type: 'undo' });
+  it('goes to pages with Alt + a number, and opens the list with ?', () => {
+    expect(readShortcut(key('Digit1', { altKey: true }))).toEqual({ type: 'go', to: '/' });
+    expect(readShortcut(key('Digit2', { altKey: true }))).toEqual({ type: 'go', to: '/plan' });
+    expect(readShortcut(key('Digit3', { altKey: true }))).toEqual({ type: 'go', to: '/stats' });
+    expect(readShortcut(key('Digit4', { altKey: true }))).toEqual({ type: 'go', to: '/browse' });
+    expect(readShortcut(key('Digit5', { altKey: true }))).toEqual({ type: 'settings' });
+    expect(readShortcut(key('Slash', { shiftKey: true, key: '?' }))).toEqual({ type: 'help' });
+    // The old single-letter page keys are free again.
+    expect(readShortcut(key('KeyH'))).toBeNull();
+    expect(readShortcut(key('KeyB'))).toBeNull();
   });
 
-  it('opens pages, settings and the shortcut list', () => {
-    expect(readShortcut(key('KeyH'))).toEqual({ type: 'go', to: '/' });
-    expect(readShortcut(key('KeyP'))).toEqual({ type: 'go', to: '/plan' });
-    expect(readShortcut(key('KeyG'))).toEqual({ type: 'go', to: '/stats' });
-    expect(readShortcut(key('KeyB'))).toEqual({ type: 'go', to: '/browse' });
-    expect(readShortcut(key('Comma'))).toEqual({ type: 'settings' });
-    expect(readShortcut(key('Slash', { key: '?', shiftKey: true }))).toEqual({ type: 'help' });
-  });
-
-  it('leaves browser and system shortcuts alone, and waits for Korean typing to finish', () => {
+  it('leaves browser shortcuts alone and waits for Korean typing to finish', () => {
     expect(readShortcut(key('KeyR', { ctrlKey: true }))).toBeNull();
+    expect(readShortcut(key('KeyC', { ctrlKey: true }))).toBeNull();
+    expect(readShortcut(key('KeyV', { ctrlKey: true }))).toBeNull();
     expect(readShortcut(key('KeyJ', { metaKey: true }))).toBeNull();
     expect(readShortcut(key('KeyA', { altKey: true }))).toBeNull();
-    expect(readShortcut(key('KeyA', { shiftKey: true }))).toBeNull();
     expect(readShortcut(key('Space', { isComposing: true }))).toBeNull();
-    expect(readShortcut(key('KeyQ'))).toBeNull();
-  });
-
-  it('never gives one key two meanings', () => {
-    const codes = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyJ', 'KeyR', 'KeyK', 'KeyL', 'KeyU', 'KeyH', 'KeyP', 'KeyG', 'KeyB', 'Comma', 'Space'];
-    const types = codes.map((c) => JSON.stringify(readShortcut(key(c))));
-    expect(new Set(types).size).toBe(codes.length - 1); // J and R both play the word
   });
 });
 
-describe('isFullscreenKey', () => {
-  it('is F alone', () => {
-    expect(isFullscreenKey(key('KeyF'))).toBe(true);
-    expect(isFullscreenKey(key('KeyF', { ctrlKey: true }))).toBe(false);
-  });
-});
+describe('the shortcut sheet', () => {
+  const lines = SHORTCUT_GROUPS.flatMap((g) => g.items);
 
-describe('SHORTCUT_GROUPS', () => {
-  it('lists the listening keys', () => {
-    const labels = SHORTCUT_GROUPS.flatMap((g) => g.items.map((i) => i.keys.join(' ')));
-    expect(labels).toContain('K');
-    expect(labels).toContain('L');
+  it('is built from the same list the handler reads', () => {
+    const shown = new Set(lines.flatMap((l) => l.keys.flat()));
+    for (const b of BINDINGS) for (const k of b.keys) if (!k.hidden) expect(shown).toContain(k.label);
+  });
+
+  it('shows 1 2 3 4 or A S D F on one line', () => {
+    const answer = lines.find((l) => l.label.startsWith('Pick choice'))!;
+    expect(answer.keys).toEqual([
+      ['1', '2', '3', '4'],
+      ['A', 'S', 'D', 'F'],
+    ]);
+  });
+
+  it('labels buttons with the first key of each action', () => {
+    expect(keyLabel('dontKnow')).toBe('X');
+    expect(keyLabel('settings')).toBe('Alt+5');
+    expect(keyLabel('fullscreen')).toBe('F11');
   });
 });
